@@ -1,0 +1,2715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FundedScope — Independent prop firm comparison (Prototype)</title>
+<meta name="description" content="Compare prop firms by pricing, drawdown, profit split, rules and current offers. Prototype with demo data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================
+   DESIGN TOKENS
+   ========================= */
+:root{
+  /* surfaces */
+  --bg:#F6F6F3;
+  --surface:#FFFFFF;
+  --surface-2:#FBFBF9;
+  --surface-sunk:#F1F1EE;
+
+  /* ink */
+  --ink:#11161F;
+  --ink-2:#39424F;
+  --muted:#69717E;
+  --faint:#949BA6;
+  --on-dark:#EDEFF2;
+  --on-dark-muted:#9AA4B4;
+
+  /* lines */
+  --line:#E4E4DF;
+  --line-2:#D5D6D0;
+  --line-dark:#232B3A;
+
+  /* brand */
+  --navy:#0D131E;
+  --navy-2:#151D2B;
+  --accent:#17457A;
+  --accent-hover:#0F3159;
+  --accent-soft:#EDF2F8;
+  --accent-line:#C7D7E9;
+
+  /* status */
+  --pos:#1B6B4C;
+  --pos-soft:#E8F1EC;
+  --pos-line:#C3DDCF;
+  --warn:#8A5A12;
+  --warn-soft:#F6F0E3;
+  --neg:#9C3B2E;
+  --star:#B8862B;
+
+  /* radius */
+  --r-xs:4px;
+  --r-sm:6px;
+  --r-md:10px;
+  --r-lg:14px;
+  --r-pill:999px;
+
+  /* elevation */
+  --sh-1:0 1px 2px rgba(16,22,32,.05), 0 1px 3px rgba(16,22,32,.05);
+  --sh-2:0 2px 4px rgba(16,22,32,.05), 0 8px 20px rgba(16,22,32,.08);
+  --sh-3:0 20px 50px rgba(11,16,25,.22);
+
+  /* type */
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+
+  /* motion */
+  --ease:cubic-bezier(.2,.7,.3,1);
+  --dur:180ms;
+
+  --nav-h:64px;
+}
+
+/* =========================
+   GLOBAL STYLES
+   ========================= */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+body.no-scroll{overflow:hidden}
+h1,h2,h3,h4{margin:0; font-weight:600; letter-spacing:-.02em; line-height:1.2; color:var(--ink)}
+h1{font-size:clamp(32px,4.6vw,52px); letter-spacing:-.03em}
+h2{font-size:clamp(22px,2.6vw,30px)}
+h3{font-size:18px; letter-spacing:-.015em}
+h4{font-size:15px; letter-spacing:-.01em}
+p{margin:0}
+a{color:inherit; text-decoration:none}
+ul{margin:0; padding:0; list-style:none}
+button{font:inherit; color:inherit; background:none; border:0; margin:0; padding:0; cursor:pointer}
+input,select{font:inherit; color:inherit}
+img,svg{display:block; max-width:100%}
+table{border-collapse:collapse; width:100%}
+.num{font-variant-numeric:tabular-nums}
+
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+.skip{position:absolute; left:-9999px; top:0; z-index:200; background:var(--surface); padding:10px 16px; border-radius:0 0 var(--r-sm) 0; box-shadow:var(--sh-2)}
+.skip:focus{left:0}
+
+.wrap{max-width:1200px; margin:0 auto; padding:0 24px; width:100%}
+.wrap-narrow{max-width:900px}
+.section{padding:64px 0}
+.section-sm{padding:40px 0}
+.stack-8{display:flex; flex-direction:column; gap:8px}
+.stack-16{display:flex; flex-direction:column; gap:16px}
+.row{display:flex; align-items:center; gap:8px}
+.spread{display:flex; align-items:center; justify-content:space-between; gap:16px}
+.grow{flex:1; min-width:0}
+.hide{display:none !important}
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+
+/* type utilities */
+.eyebrow{font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+.lede{font-size:16px; color:var(--muted); line-height:1.6}
+.meta{font-size:13px; color:var(--muted)}
+.micro{font-size:12px; color:var(--faint); line-height:1.5}
+.label{font-size:12px; font-weight:500; color:var(--muted)}
+.section-head{display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:24px; flex-wrap:wrap}
+.section-head p{max-width:56ch}
+
+/* =========================
+   BUTTONS / CONTROLS
+   ========================= */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  height:40px; padding:0 16px; border-radius:var(--r-sm);
+  font-size:14px; font-weight:500; white-space:nowrap;
+  border:1px solid transparent; background:transparent; color:var(--ink);
+  transition:background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.btn:active{transform:translateY(1px)}
+.btn svg{flex:none}
+.btn-primary{background:var(--accent); color:#fff; box-shadow:var(--sh-1)}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-secondary{background:var(--surface); border-color:var(--line-2); color:var(--ink)}
+.btn-secondary:hover{border-color:#B9BCB6; background:var(--surface-2)}
+.btn-ghost{color:var(--ink-2)}
+.btn-ghost:hover{background:rgba(17,22,31,.05); color:var(--ink)}
+.btn-onnavy{background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.18); color:#fff}
+.btn-onnavy:hover{background:rgba(255,255,255,.14)}
+.btn-sm{height:32px; padding:0 12px; font-size:13px}
+.btn-block{width:100%}
+.btn[disabled]{opacity:.45; cursor:not-allowed}
+.btn-copy.copied{background:var(--pos-soft); border-color:var(--pos-line); color:var(--pos)}
+
+.field{position:relative; display:flex; align-items:center}
+.field svg{position:absolute; left:12px; color:var(--faint); pointer-events:none}
+.input{
+  width:100%; height:40px; padding:0 12px 0 36px;
+  background:var(--surface); border:1px solid var(--line-2); border-radius:var(--r-sm);
+  font-size:14px; color:var(--ink); transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.input::placeholder{color:var(--faint)}
+.input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(23,69,122,.12)}
+.select{
+  height:40px; padding:0 34px 0 12px; background:var(--surface);
+  border:1px solid var(--line-2); border-radius:var(--r-sm); font-size:14px; cursor:pointer;
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2369717E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;
+}
+.select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(23,69,122,.12)}
+
+.check{display:flex; align-items:center; gap:10px; padding:7px 0; cursor:pointer; font-size:14px; color:var(--ink-2)}
+.check input{position:absolute; opacity:0; width:0; height:0}
+.check .box{
+  width:18px; height:18px; flex:none; border:1px solid var(--line-2); border-radius:var(--r-xs);
+  background:var(--surface); display:grid; place-items:center; transition:all var(--dur) var(--ease);
+}
+.check .box svg{opacity:0; color:#fff; transform:scale(.7); transition:all var(--dur) var(--ease)}
+.check input:checked + .box{background:var(--accent); border-color:var(--accent)}
+.check input:checked + .box svg{opacity:1; transform:scale(1)}
+.check input:focus-visible + .box{outline:2px solid var(--accent); outline-offset:2px}
+.check:hover .box{border-color:var(--accent-line)}
+
+input[type=range]{
+  -webkit-appearance:none; appearance:none; width:100%; height:22px; background:transparent; cursor:pointer;
+}
+input[type=range]::-webkit-slider-runnable-track{height:4px; border-radius:2px; background:var(--line-2)}
+input[type=range]::-moz-range-track{height:4px; border-radius:2px; background:var(--line-2)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; margin-top:-7px; width:18px; height:18px; border-radius:50%;
+  background:var(--surface); border:1px solid var(--line-2); box-shadow:var(--sh-1);
+}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--surface); border:1px solid var(--line-2); box-shadow:var(--sh-1)}
+input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--accent); outline-offset:2px}
+
+/* badges */
+.badge{display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 8px; border-radius:var(--r-xs); font-size:11.5px; font-weight:600; letter-spacing:.01em; border:1px solid transparent; white-space:nowrap}
+.badge-offer{background:var(--accent-soft); color:var(--accent); border-color:var(--accent-line)}
+.badge-verified{background:var(--pos-soft); color:var(--pos); border-color:var(--pos-line)}
+.badge-muted{background:var(--surface-sunk); color:var(--muted); border-color:var(--line)}
+.badge-expired{background:var(--surface-sunk); color:var(--faint); border-color:var(--line)}
+.badge-demo{background:transparent; color:var(--faint); border-color:var(--line-2); font-weight:500}
+
+/* stars */
+.stars{position:relative; display:inline-block; width:65px; flex:0 0 65px; height:13px; line-height:0; white-space:nowrap; vertical-align:-1px}
+.stars-bg,.stars-fg{display:block; white-space:nowrap}
+.stars-bg svg{color:var(--line-2)}
+.stars-fg{position:absolute; inset:0; overflow:hidden}
+.stars-fg svg{color:var(--star)}
+.stars svg{display:inline-block; width:13px; height:13px; vertical-align:top}
+.rating-line{display:inline-flex; align-items:center; gap:6px; font-size:13px}
+.rating-val{font-weight:600; font-size:13.5px}
+
+/* code chip */
+.code-chip{
+  display:inline-flex; align-items:center; height:32px; padding:0 10px; gap:8px;
+  border:1px dashed var(--line-2); border-radius:var(--r-sm); background:var(--surface-2);
+  font-size:13px; font-weight:600; letter-spacing:.06em; color:var(--ink);
+}
+
+/* info tooltip */
+.info{display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; color:var(--faint); vertical-align:-3px; margin-left:4px; transition:color var(--dur) var(--ease)}
+.info:hover{color:var(--accent)}
+.tip{
+  position:fixed; z-index:120; max-width:260px; padding:10px 12px; border-radius:var(--r-sm);
+  background:var(--navy); color:var(--on-dark); font-size:12.5px; line-height:1.5; box-shadow:var(--sh-3);
+  opacity:0; transform:translateY(4px); transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease); pointer-events:none;
+}
+.tip.show{opacity:1; transform:translateY(0)}
+.tip strong{display:block; color:#fff; margin-bottom:2px; font-size:12.5px}
+
+/* =========================
+   NAVIGATION
+   ========================= */
+.nav{
+  position:sticky; top:0; z-index:60; height:var(--nav-h);
+  background:rgba(246,246,243,.88); backdrop-filter:saturate(1.6) blur(10px); -webkit-backdrop-filter:saturate(1.6) blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.nav-inner{display:flex; align-items:center; gap:24px; height:var(--nav-h)}
+.brand{display:flex; align-items:center; gap:9px; font-weight:600; font-size:16px; letter-spacing:-.02em; flex:none}
+.brand-mark{width:26px; height:26px; border-radius:7px; background:var(--navy); display:grid; place-items:center; flex:none}
+.nav-links{display:flex; align-items:center; gap:2px; flex:1}
+.nav-link{
+  height:34px; display:inline-flex; align-items:center; padding:0 11px; border-radius:var(--r-sm);
+  font-size:14px; color:var(--ink-2); transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.nav-link:hover{background:rgba(17,22,31,.05); color:var(--ink)}
+.nav-link.active{color:var(--ink); font-weight:500; background:rgba(17,22,31,.06)}
+.nav-actions{display:flex; align-items:center; gap:8px; flex:none}
+.icon-btn{
+  width:36px; height:36px; display:grid; place-items:center; border-radius:var(--r-sm); color:var(--ink-2);
+  transition:background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.icon-btn:hover{background:rgba(17,22,31,.06); color:var(--ink)}
+.nav-search{
+  display:flex; align-items:center; gap:8px; height:36px; padding:0 10px; min-width:184px;
+  border:1px solid var(--line-2); border-radius:var(--r-sm); background:var(--surface); color:var(--faint); font-size:13.5px;
+  transition:border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.nav-search:hover{border-color:#BFC2BC; background:var(--surface-2)}
+.nav-search kbd{
+  margin-left:auto; font-family:var(--font); font-size:11px; color:var(--faint);
+  border:1px solid var(--line); border-radius:var(--r-xs); padding:1px 5px; background:var(--surface-2);
+}
+.menu-btn{display:none}
+#searchIconBtn{display:none}
+.mobile-menu{
+  position:fixed; top:var(--nav-h); left:0; right:0; z-index:59;
+  background:var(--surface); border-bottom:1px solid var(--line); box-shadow:var(--sh-2);
+  padding:8px 0 16px; transform-origin:top;
+  opacity:0; transform:translateY(-8px); pointer-events:none; visibility:hidden;
+  transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease), visibility var(--dur);
+}
+.mobile-menu.open{opacity:1; transform:translateY(0); pointer-events:auto; visibility:visible}
+.mobile-menu a{display:block; padding:13px 4px; font-size:16px; border-bottom:1px solid var(--line)}
+.mobile-menu a:last-of-type{border-bottom:0}
+.mobile-menu .btn{margin-top:12px}
+
+/* =========================
+   HOMEPAGE — HERO
+   ========================= */
+.hero{
+  position:relative; background:var(--navy); color:var(--on-dark); overflow:hidden;
+  padding:76px 0 104px;
+}
+.hero::before{
+  content:""; position:absolute; inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size:56px 56px; mask-image:radial-gradient(120% 90% at 70% 0%, #000 0%, transparent 72%);
+  -webkit-mask-image:radial-gradient(120% 90% at 70% 0%, #000 0%, transparent 72%);
+}
+.hero::after{
+  content:""; position:absolute; top:-30%; right:-8%; width:620px; height:620px; border-radius:50%;
+  background:radial-gradient(circle, rgba(52,102,168,.20) 0%, rgba(13,19,30,0) 66%);
+}
+.hero-inner{position:relative; z-index:1; max-width:720px}
+.hero h1{color:#fff; margin-bottom:18px}
+.hero-sub{font-size:17px; line-height:1.6; color:var(--on-dark-muted); max-width:58ch}
+.hero-cta{display:flex; gap:12px; margin-top:28px; flex-wrap:wrap}
+.hero-cta .btn{height:44px; padding:0 20px}
+.trust-row{display:flex; gap:24px; margin-top:36px; flex-wrap:wrap; padding-top:22px; border-top:1px solid rgba(255,255,255,.1)}
+.trust-item{display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--on-dark-muted)}
+.trust-item svg{color:#5E8FC7; flex:none}
+
+/* matcher preview card */
+.matcher-preview{margin-top:-64px; position:relative; z-index:2}
+.mp-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); box-shadow:var(--sh-2); padding:28px}
+.mp-head{display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px}
+.chip-row{display:flex; flex-wrap:wrap; gap:8px}
+.chip{
+  display:inline-flex; align-items:center; gap:7px; height:38px; padding:0 14px;
+  border:1px solid var(--line-2); border-radius:var(--r-pill); background:var(--surface);
+  font-size:14px; color:var(--ink-2);
+  transition:border-color var(--dur) var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.chip:hover{border-color:#B9BCB6; background:var(--surface-2)}
+.chip[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent-line); color:var(--accent); font-weight:500}
+.chip .chip-tick{opacity:0; width:0; transition:opacity var(--dur) var(--ease), width var(--dur) var(--ease)}
+.chip[aria-pressed="true"] .chip-tick{opacity:1; width:14px}
+.mp-foot{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:20px; padding-top:20px; border-top:1px solid var(--line); flex-wrap:wrap}
+.mp-results{margin-top:20px; padding-top:20px; border-top:1px solid var(--line)}
+.match-list{display:grid; gap:10px}
+.match-row{
+  display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center;
+  padding:14px; border:1px solid var(--line); border-radius:var(--r-md); background:var(--surface-2);
+  animation:rise 260ms var(--ease) both;
+}
+.match-row:nth-child(2){animation-delay:50ms}
+.match-row:nth-child(3){animation-delay:100ms}
+.match-why{font-size:13px; color:var(--muted); margin-top:2px}
+.match-score{text-align:right; flex:none}
+.match-score .pct{font-size:19px; font-weight:600; letter-spacing:-.02em; color:var(--accent)}
+@keyframes rise{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+/* skeleton */
+.skel{background:linear-gradient(90deg,var(--surface-sunk) 25%,#EAEAE6 37%,var(--surface-sunk) 63%); background-size:400% 100%; animation:shimmer 1.2s linear infinite; border-radius:var(--r-sm)}
+@keyframes shimmer{from{background-position:100% 0} to{background-position:0 0}}
+.skel-row{height:74px; border-radius:var(--r-md); margin-bottom:10px}
+
+/* =========================
+   FIRM CARDS
+   ========================= */
+.card-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(272px,1fr)); gap:16px}
+.firm-card{
+  position:relative; display:flex; flex-direction:column;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); padding:18px;
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.firm-card:hover{border-color:var(--line-2); box-shadow:var(--sh-2); transform:translateY(-2px)}
+.firm-card.selected{border-color:var(--accent-line); box-shadow:0 0 0 1px var(--accent-line)}
+.fc-top{display:flex; gap:12px; align-items:flex-start}
+.logo{
+  width:38px; height:38px; flex:none; border-radius:9px; display:grid; place-items:center;
+  font-size:13px; font-weight:700; letter-spacing:-.03em; color:#fff;
+}
+.logo-lg{width:56px; height:56px; border-radius:12px; font-size:19px}
+.fc-name{font-size:15.5px; font-weight:600; letter-spacing:-.015em; line-height:1.3}
+/* uneven columns so "Max drawdown" fits without truncating in a 4-up grid */
+.fc-stats{display:grid; grid-template-columns:0.78fr 1fr 1.22fr; gap:8px; margin:16px 0; padding:14px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line)}
+.stat{min-width:0}
+.stat-val{font-size:17px; font-weight:600; letter-spacing:-.02em; line-height:1.2}
+.stat-key{font-size:11px; color:var(--muted); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.fc-offer{display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-height:24px; margin-bottom:14px}
+.fc-actions{display:flex; gap:8px; margin-top:auto}
+.fc-actions .btn{flex:1}
+.fc-verify{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--muted); margin-top:12px}
+.fc-verify svg{color:var(--pos); flex:none}
+
+/* =========================
+   DEALS
+   ========================= */
+.deal-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:16px}
+.deal-card{
+  display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r-md); padding:18px;
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.deal-card:hover{border-color:var(--line-2); box-shadow:var(--sh-2); transform:translateY(-2px)}
+.deal-card.expired{opacity:.62; background:var(--surface-2)}
+.deal-card.expired:hover{transform:none; box-shadow:none; border-color:var(--line)}
+.deal-amount{font-size:26px; font-weight:600; letter-spacing:-.03em; margin:14px 0 2px}
+.deal-desc{font-size:13.5px; color:var(--muted); margin-bottom:16px}
+.deal-code{display:flex; gap:8px; align-items:center; margin-bottom:12px}
+.deal-code .code-chip{flex:1}
+.deal-foot{margin-top:auto; padding-top:14px; border-top:1px solid var(--line); display:flex; flex-direction:column; align-items:flex-start; gap:7px}
+
+/* =========================
+   FIRM DIRECTORY / TOOLBAR
+   ========================= */
+.page-head{padding:40px 0 28px; border-bottom:1px solid var(--line)}
+.page-head h1{font-size:clamp(26px,3.4vw,38px); margin-bottom:8px}
+.toolbar{display:flex; gap:10px; align-items:center; padding:20px 0; flex-wrap:wrap}
+.toolbar .field{flex:1; min-width:200px}
+.toolbar-meta{display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:16px; flex-wrap:wrap}
+.filter-tags{display:flex; gap:6px; flex-wrap:wrap}
+.tag{
+  display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 6px 0 10px; border-radius:var(--r-pill);
+  background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent); font-size:12.5px; font-weight:500;
+}
+.tag button{display:grid; place-items:center; width:16px; height:16px; border-radius:50%; color:var(--accent); opacity:.7}
+.tag button:hover{opacity:1; background:rgba(23,69,122,.1)}
+.count-dot{display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:var(--r-pill); background:var(--accent); color:#fff; font-size:11px; font-weight:600}
+.empty{padding:56px 24px; text-align:center; border:1px dashed var(--line-2); border-radius:var(--r-md); background:var(--surface-2)}
+
+/* =========================
+   COMPARISON TABLE
+   ========================= */
+.table-wrap{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden;
+}
+.table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+.ctable{min-width:940px; font-size:14px}
+.ctable th{
+  text-align:left; font-size:11.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+  padding:12px 14px; background:var(--surface-2); border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0; z-index:2;
+}
+.ctable td{padding:14px; border-bottom:1px solid var(--line); vertical-align:middle}
+.ctable tr:last-child td{border-bottom:0}
+.ctable tbody tr{transition:background var(--dur) var(--ease)}
+.ctable tbody tr:hover{background:var(--surface-2)}
+.ctable tbody tr.selected{background:var(--accent-soft)}
+.ctable .col-firm{min-width:220px}
+.ctable .cell-firm{display:flex; align-items:center; gap:10px}
+.ctable .cell-firm .name{font-weight:600; font-size:14.5px; letter-spacing:-.01em}
+.ctable td.num-cell{font-variant-numeric:tabular-nums}
+.th-sortable{cursor:pointer}
+
+/* sticky compare bar */
+.compare-bar{
+  position:fixed; left:0; right:0; bottom:0; z-index:55;
+  background:var(--navy); color:var(--on-dark); border-top:1px solid var(--line-dark);
+  transform:translateY(110%); transition:transform 220ms var(--ease);
+  padding:12px 0 calc(12px + env(safe-area-inset-bottom));
+  box-shadow:0 -8px 30px rgba(11,16,25,.18);
+}
+.compare-bar.show{transform:translateY(0)}
+.cb-inner{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+.cb-chips{display:flex; gap:8px; flex:1; flex-wrap:wrap; min-width:0}
+.cb-chip{
+  display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 6px 0 10px; border-radius:var(--r-sm);
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); font-size:13px; color:#fff;
+}
+.cb-chip button{display:grid; place-items:center; width:18px; height:18px; border-radius:var(--r-xs); color:var(--on-dark-muted)}
+.cb-chip button:hover{background:rgba(255,255,255,.14); color:#fff}
+.cb-count{font-size:13px; color:var(--on-dark-muted); white-space:nowrap}
+.cb-actions{display:flex; gap:8px; align-items:center; flex:none}
+
+/* =========================
+   SIDE-BY-SIDE COMPARISON
+   ========================= */
+.sbs-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+.sbs{min-width:640px; width:100%; font-size:14px}
+.sbs th,.sbs td{padding:13px 16px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle}
+.sbs thead th{background:var(--surface-2); border-bottom:1px solid var(--line-2); vertical-align:bottom; position:sticky; top:0; z-index:2}
+.sbs tbody tr:hover{background:var(--surface-2)}
+.sbs .row-label{
+  color:var(--muted); font-size:13px; font-weight:500; width:190px; white-space:nowrap;
+  position:sticky; left:0; background:var(--surface); z-index:1;
+}
+.sbs tbody tr:hover .row-label{background:var(--surface-2)}
+.sbs thead .row-label{background:var(--surface-2)}
+.sbs .val{font-variant-numeric:tabular-nums}
+.sbs .best{font-weight:600}
+.best-mark{display:inline-flex; align-items:center; gap:4px; margin-left:8px; font-size:11px; font-weight:600; color:var(--pos); letter-spacing:.02em}
+.sbs-head-firm{display:flex; flex-direction:column; gap:8px; min-width:150px}
+
+/* =========================
+   MATCHER
+   ========================= */
+.matcher-shell{max-width:760px; margin:0 auto}
+.progress{display:flex; align-items:center; gap:12px; margin-bottom:24px}
+.progress-track{flex:1; height:4px; border-radius:2px; background:var(--line); overflow:hidden}
+.progress-fill{height:100%; background:var(--accent); border-radius:2px; transition:width 260ms var(--ease)}
+.q-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); padding:32px; box-shadow:var(--sh-1)}
+.q-card h2{margin-bottom:6px; font-size:24px}
+.q-options{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-top:24px}
+.opt{
+  display:flex; align-items:flex-start; gap:12px; text-align:left; padding:16px;
+  border:1px solid var(--line-2); border-radius:var(--r-md); background:var(--surface);
+  transition:border-color var(--dur) var(--ease), background var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.opt:hover{border-color:#B9BCB6; background:var(--surface-2); transform:translateY(-1px)}
+.opt[aria-pressed="true"]{border-color:var(--accent); background:var(--accent-soft); box-shadow:0 0 0 1px var(--accent)}
+.opt-mark{width:18px; height:18px; flex:none; border:1px solid var(--line-2); border-radius:50%; display:grid; place-items:center; margin-top:1px; background:var(--surface)}
+.opt[aria-pressed="true"] .opt-mark{background:var(--accent); border-color:var(--accent); color:#fff}
+.opt-mark svg{opacity:0}
+.opt[aria-pressed="true"] .opt-mark svg{opacity:1}
+.opt-title{display:block; font-size:14.5px; font-weight:500; line-height:1.35}
+.opt-desc{font-size:12.5px; color:var(--muted); margin-top:3px}
+.q-foot{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:28px; padding-top:20px; border-top:1px solid var(--line)}
+
+.result-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); padding:20px; margin-bottom:12px;
+  animation:rise 280ms var(--ease) both;
+}
+.result-card:nth-child(2){animation-delay:60ms}
+.result-card:nth-child(3){animation-delay:120ms}
+.result-card.top{border-color:var(--accent-line); box-shadow:0 0 0 1px var(--accent-line)}
+.rc-head{display:flex; gap:14px; align-items:flex-start}
+.score-ring{
+  width:60px; height:60px; flex:none; border-radius:50%; display:grid; place-items:center;
+  background:conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--line) 0); position:relative;
+}
+.score-ring::after{content:""; position:absolute; inset:5px; border-radius:50%; background:var(--surface)}
+.score-ring span{position:relative; z-index:1; font-size:14px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.rc-reasons{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
+.reason{display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink-2); background:var(--surface-sunk); border-radius:var(--r-xs); padding:4px 8px}
+.reason svg{color:var(--pos); flex:none}
+
+/* =========================
+   FIRM PROFILE
+   ========================= */
+.profile-grid{display:grid; grid-template-columns:1fr 320px; gap:32px; align-items:start}
+/* grid items default to min-width:auto, which stops inner scroll containers from shrinking */
+.profile-grid > *,.two-col > *,.card-grid > *,.deal-grid > *,.guide-grid > *,.stat-grid > *,.match-row > *{min-width:0}
+.profile-head{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap}
+.breadcrumb{display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); margin-bottom:20px}
+.breadcrumb a:hover{color:var(--ink); text-decoration:underline}
+.offer-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); padding:20px; position:sticky; top:calc(var(--nav-h) + 20px);
+}
+.offer-card .amount{font-size:24px; font-weight:600; letter-spacing:-.03em}
+.stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden}
+.stat-cell{background:var(--surface); padding:16px 18px}
+.stat-cell .stat-val{font-size:19px}
+.stat-cell .stat-key{font-size:12px; white-space:normal}
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden}
+.panel-head{padding:16px 20px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:12px}
+.rule-row{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px 20px; border-bottom:1px solid var(--line); font-size:14px}
+.rule-row:last-child{border-bottom:0}
+.rule-row .k{color:var(--muted)}
+.rule-row .v{font-weight:500; text-align:right}
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.pc-list li{display:flex; gap:10px; padding:9px 0; font-size:14px; line-height:1.5; color:var(--ink-2)}
+.pc-list li:first-child{padding-top:0}
+.pc-list svg{flex:none; margin-top:3px}
+.pc-pro svg{color:var(--pos)}
+.pc-con svg{color:var(--warn)}
+.review{padding:18px 20px; border-bottom:1px solid var(--line)}
+.review:last-child{border-bottom:0}
+.review-quote{font-size:14.5px; line-height:1.6; color:var(--ink-2); margin:8px 0 10px}
+.prog-table{font-size:14px}
+.prog-table th{text-align:left; font-size:11.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:12px 20px; border-bottom:1px solid var(--line); background:var(--surface-2)}
+.prog-table td{padding:13px 20px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums}
+.prog-table tr:last-child td{border-bottom:0}
+.disclosure-inline{font-size:11.5px; color:var(--faint); line-height:1.5; margin-top:12px}
+
+/* =========================
+   GUIDES
+   ========================= */
+.guide-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:16px}
+.guide-card{
+  display:flex; flex-direction:column; text-align:left; height:100%;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-md); padding:20px;
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.guide-card:hover{border-color:var(--line-2); box-shadow:var(--sh-2); transform:translateY(-2px)}
+.guide-card h3{font-size:16px; margin:14px 0 6px}
+.guide-icon{width:34px; height:34px; border-radius:8px; background:var(--accent-soft); color:var(--accent); display:grid; place-items:center}
+.guide-foot{margin-top:auto; padding-top:16px; display:flex; align-items:center; gap:6px; font-size:13px; color:var(--accent); font-weight:500}
+.article h3{margin:26px 0 8px}
+.article p{margin-bottom:12px; color:var(--ink-2); line-height:1.65; font-size:15px}
+.article ul.bullets{margin:0 0 14px; padding-left:0}
+.article ul.bullets li{position:relative; padding-left:18px; margin-bottom:7px; color:var(--ink-2); line-height:1.6}
+.article ul.bullets li::before{content:""; position:absolute; left:3px; top:9px; width:5px; height:5px; border-radius:50%; background:var(--accent-line)}
+
+/* =========================
+   MODALS / OVERLAYS
+   ========================= */
+.overlay{
+  position:fixed; inset:0; z-index:100; display:flex; padding:24px;
+  background:rgba(13,19,30,.42); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
+  opacity:0; visibility:hidden; transition:opacity 200ms var(--ease), visibility 200ms;
+}
+.overlay.open{opacity:1; visibility:visible}
+.modal{
+  background:var(--surface); border-radius:var(--r-lg); box-shadow:var(--sh-3);
+  width:100%; max-width:720px; margin:auto; max-height:calc(100vh - 48px); display:flex; flex-direction:column;
+  transform:translateY(10px) scale(.99); opacity:0; transition:transform 200ms var(--ease), opacity 200ms var(--ease);
+}
+.overlay.open .modal{transform:none; opacity:1}
+.modal-wide{max-width:1040px}
+.modal-head{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:20px 24px; border-bottom:1px solid var(--line); flex:none}
+.modal-body{padding:24px; overflow-y:auto; -webkit-overflow-scrolling:touch}
+.modal-body.flush{padding:0}
+.modal-foot{padding:16px 24px; border-top:1px solid var(--line); display:flex; gap:10px; justify-content:flex-end; flex:none; background:var(--surface-2); border-radius:0 0 var(--r-lg) var(--r-lg)}
+
+/* filter drawer */
+.drawer-overlay{align-items:stretch; justify-content:flex-end; padding:0}
+.drawer{
+  background:var(--surface); width:100%; max-width:380px; height:100%; display:flex; flex-direction:column;
+  box-shadow:var(--sh-3); transform:translateX(24px); opacity:0; transition:transform 220ms var(--ease), opacity 200ms var(--ease);
+}
+.overlay.open .drawer{transform:none; opacity:1}
+.filter-group{padding:18px 24px; border-bottom:1px solid var(--line)}
+.filter-group h4{margin-bottom:8px}
+.range-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px}
+
+/* search overlay */
+.search-overlay{align-items:flex-start; padding-top:12vh}
+.search-panel{
+  background:var(--surface); border-radius:var(--r-lg); box-shadow:var(--sh-3); width:100%; max-width:620px; margin:0 auto;
+  overflow:hidden; display:flex; flex-direction:column; max-height:70vh;
+  transform:translateY(-8px); opacity:0; transition:transform 200ms var(--ease), opacity 200ms var(--ease);
+}
+.overlay.open .search-panel{transform:none; opacity:1}
+.search-head{display:flex; align-items:center; gap:12px; padding:0 16px; border-bottom:1px solid var(--line); flex:none}
+.search-head input{flex:1; height:58px; border:0; background:transparent; font-size:16px; outline:none}
+.search-head input::placeholder{color:var(--faint)}
+.search-results{overflow-y:auto; padding:8px}
+.sr-group-title{padding:10px 12px 6px}
+.sr-item{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:10px 12px; border-radius:var(--r-sm);
+  transition:background var(--dur) var(--ease);
+}
+.sr-item:hover,.sr-item.active{background:var(--surface-sunk)}
+.sr-item .sr-meta{margin-left:auto; font-size:12px; color:var(--faint); white-space:nowrap}
+
+/* toast */
+.toast-wrap{position:fixed; right:24px; bottom:24px; z-index:130; display:flex; flex-direction:column; gap:10px; align-items:flex-end; pointer-events:none}
+.toast{
+  display:flex; align-items:flex-start; gap:10px; max-width:340px; padding:12px 14px; border-radius:var(--r-md);
+  background:var(--navy); color:var(--on-dark); font-size:13.5px; line-height:1.45; box-shadow:var(--sh-3);
+  animation:toast-in 220ms var(--ease) both; pointer-events:auto;
+}
+.toast svg{flex:none; margin-top:1px; color:#7FB79B}
+.toast.leaving{animation:toast-out 180ms var(--ease) forwards}
+@keyframes toast-in{from{opacity:0; transform:translateY(12px) scale(.98)} to{opacity:1; transform:none}}
+@keyframes toast-out{to{opacity:0; transform:translateY(6px)}}
+
+/* =========================
+   DISCLOSURES / FOOTER
+   ========================= */
+.disclosure-bar{background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:16px 0}
+.disclosure-bar .micro{max-width:88ch}
+.site-footer{background:var(--navy); color:var(--on-dark-muted); padding:56px 0 32px; margin-top:auto}
+.footer-grid{display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px; padding-bottom:32px; border-bottom:1px solid var(--line-dark)}
+.site-footer h4{color:#fff; font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:14px; font-weight:600}
+.site-footer a{font-size:13.5px; color:var(--on-dark-muted); display:inline-block; padding:5px 0; transition:color var(--dur) var(--ease)}
+.site-footer a:hover{color:#fff}
+.footer-brand{display:flex; align-items:center; gap:9px; color:#fff; font-weight:600; font-size:16px; margin-bottom:10px; letter-spacing:-.02em}
+.footer-brand .brand-mark{background:rgba(255,255,255,.1)}
+.footer-legal{padding-top:24px; display:flex; gap:16px; justify-content:space-between; flex-wrap:wrap; font-size:12px; color:#78818F}
+.footer-legal p{max-width:70ch; line-height:1.6}
+
+/* page shell */
+.app{display:flex; flex-direction:column; min-height:100vh}
+#main{flex:1}
+.view-enter{animation:viewin 220ms var(--ease) both}
+@keyframes viewin{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+@media (max-width:1080px){
+  .profile-grid{grid-template-columns:1fr 280px; gap:24px}
+  .footer-grid{grid-template-columns:1fr 1fr 1fr; gap:24px}
+}
+@media (max-width:900px){
+  .nav-links{display:none}
+  .nav-search{display:none}
+  .menu-btn{display:grid}
+  #searchIconBtn{display:grid}
+  .nav-inner{gap:12px}
+  .nav-actions{margin-left:auto}
+  .profile-grid{grid-template-columns:1fr}
+  .offer-card{position:static}
+  .two-col{grid-template-columns:1fr}
+  .hero{padding:56px 0 92px}
+  .section{padding:48px 0}
+}
+@media (max-width:720px){
+  .wrap{padding:0 16px}
+  .mp-card{padding:20px}
+  .q-card{padding:22px}
+  .hero-cta .btn{flex:1; min-width:0}
+  .footer-grid{grid-template-columns:1fr 1fr; gap:20px}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .overlay{padding:0}
+  .modal{max-width:none; max-height:100vh; height:100%; border-radius:0; margin:0}
+  .modal-foot{border-radius:0}
+  .search-overlay{padding-top:0}
+  .search-panel{max-width:none; border-radius:0; max-height:100vh; height:100%}
+  .drawer{max-width:none; height:88%; margin-top:auto; border-radius:var(--r-lg) var(--r-lg) 0 0; transform:translateY(24px)}
+  .toast-wrap{left:16px; right:16px; bottom:16px; align-items:stretch}
+  .toast{max-width:none}
+  body.has-bar .toast-wrap{bottom:96px}
+  .cb-inner{gap:10px}
+  .cb-actions{width:100%}
+  .cb-actions .btn{flex:1}
+  .compare-bar{padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
+  .section{padding:40px 0}
+  .matcher-preview{margin-top:-52px}
+}
+@media (max-width:560px){
+  .nav-actions > .btn-primary{display:none}
+}
+@media (max-width:480px){
+  .fc-stats{grid-template-columns:0.8fr 1fr 1.2fr; gap:4px}
+  .stat-val{font-size:15.5px}
+  .stat-key{font-size:11px}
+  .card-grid,.deal-grid,.guide-grid{grid-template-columns:1fr}
+  .q-options{grid-template-columns:1fr}
+  .hero-sub{font-size:16px}
+  .trust-row{gap:12px 20px}
+  .sbs .row-label{width:120px; font-size:12.5px}
+  .sbs th,.sbs td{padding:11px 12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="app">
+
+  <!-- =========================
+       NAVIGATION
+       ========================= -->
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#/" data-nav="home" aria-label="FundedScope home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 4 7-8"/><path d="M15 7h4v4"/></svg>
+        </span>
+        FundedScope
+      </a>
+
+      <nav class="nav-links" aria-label="Primary">
+        <a class="nav-link" href="#/compare" data-nav="compare">Compare</a>
+        <a class="nav-link" href="#/firms" data-nav="firms">Prop Firms</a>
+        <a class="nav-link" href="#/deals" data-nav="deals">Deals</a>
+        <a class="nav-link" href="#/matcher" data-nav="matcher">Match Me</a>
+        <a class="nav-link" href="#/guides" data-nav="guides">Guides</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="nav-search" data-action="open-search" aria-label="Search the site">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <span>Search</span>
+          <kbd>/</kbd>
+        </button>
+        <button class="icon-btn" data-action="open-search" aria-label="Search" id="searchIconBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </button>
+        <a class="btn btn-primary btn-sm" href="#/matcher" data-nav="matcher">Find My Firm</a>
+        <button class="icon-btn menu-btn" data-action="toggle-menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+          <svg id="menuIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobileMenu" hidden>
+    <div class="wrap">
+      <a href="#/compare" data-nav="compare">Compare</a>
+      <a href="#/firms" data-nav="firms">Prop Firms</a>
+      <a href="#/deals" data-nav="deals">Deals</a>
+      <a href="#/matcher" data-nav="matcher">Match Me</a>
+      <a href="#/guides" data-nav="guides">Guides</a>
+      <a class="btn btn-primary btn-block" href="#/matcher" data-nav="matcher">Find my prop firm</a>
+      <button class="btn btn-secondary btn-block" data-action="open-search" style="margin-top:8px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        Search firms &amp; guides
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================
+       VIEW ROOT (SPA)
+       ========================= -->
+  <main id="main"></main>
+
+  <!-- =========================
+       DISCLOSURE + FOOTER
+       ========================= -->
+  <div class="disclosure-bar">
+    <div class="wrap">
+      <p class="micro"><strong style="color:var(--muted)">Affiliate disclosure:</strong> We may earn a commission from some purchases made through links on this site. This does not determine our ratings or where firms appear in comparisons.</p>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">
+            <span class="brand-mark" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 4 7-8"/><path d="M15 7h4v4"/></svg>
+            </span>
+            FundedScope
+          </div>
+          <p style="font-size:13.5px; line-height:1.6; max-width:34ch">Independent prop firm comparison. Rules, pricing and offers side by side.</p>
+          <p class="badge badge-demo" style="margin-top:16px; color:#78818F; border-color:#2A3444">Prototype — demo data</p>
+        </div>
+        <div>
+          <h4>Explore</h4>
+          <ul>
+            <li><a href="#/compare" data-nav="compare">Compare</a></li>
+            <li><a href="#/firms" data-nav="firms">Prop Firms</a></li>
+            <li><a href="#/deals" data-nav="deals">Deals</a></li>
+            <li><a href="#/matcher" data-nav="matcher">Match Me</a></li>
+            <li><a href="#/guides" data-nav="guides">Guides</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Trust</h4>
+          <ul>
+            <li><a href="#/" data-action="stub" data-stub="Methodology">Methodology</a></li>
+            <li><a href="#/" data-action="stub" data-stub="Affiliate Disclosure">Affiliate Disclosure</a></li>
+            <li><a href="#/" data-action="stub" data-stub="Risk Disclosure">Risk Disclosure</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Company</h4>
+          <ul>
+            <li><a href="#/" data-action="stub" data-stub="Privacy">Privacy</a></li>
+            <li><a href="#/" data-action="stub" data-stub="Terms">Terms</a></li>
+            <li><a href="#/" data-action="stub" data-stub="Contact">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-legal">
+        <p><strong style="color:#98A2B0">Risk disclaimer:</strong> Trading involves substantial risk. Prop firm programs have their own rules, fees and conditions. Always review current terms before purchasing. Nothing here is financial advice.</p>
+        <p>© 2026 FundedScope — prototype build.</p>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- =========================
+     STICKY COMPARE BAR
+     ========================= -->
+<div class="compare-bar" id="compareBar" role="region" aria-label="Comparison tray">
+  <div class="wrap cb-inner">
+    <span class="cb-count" id="cbCount">0 firms selected</span>
+    <div class="cb-chips" id="cbChips"></div>
+    <div class="cb-actions">
+      <button class="btn btn-onnavy btn-sm" data-action="clear-compare">Clear</button>
+      <button class="btn btn-primary btn-sm" data-action="open-sbs" id="cbCompare">Compare</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================
+     OVERLAYS
+     ========================= -->
+<div class="overlay search-overlay" id="searchOverlay" role="dialog" aria-modal="true" aria-label="Search" hidden>
+  <div class="search-panel">
+    <div class="search-head">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#949BA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="searchInput" type="search" placeholder="Search firms, markets, challenge types, guides…" aria-label="Search" autocomplete="off">
+      <button class="icon-btn" data-action="close-overlay" aria-label="Close search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<div class="overlay drawer-overlay" id="filterOverlay" role="dialog" aria-modal="true" aria-label="Filters" hidden>
+  <div class="drawer">
+    <div class="modal-head">
+      <div>
+        <h3>Filters</h3>
+        <p class="meta">Narrow the list to firms that fit your rules.</p>
+      </div>
+      <button class="icon-btn" data-action="close-overlay" aria-label="Close filters">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body flush" style="flex:1" id="filterBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" data-action="clear-filters">Clear all</button>
+      <button class="btn btn-primary" data-action="close-overlay" id="filterApply">Show firms</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+  <div class="modal" id="modalEl">
+    <div class="modal-head">
+      <div class="grow">
+        <p class="eyebrow" id="modalEyebrow"></p>
+        <h3 id="modalTitle" style="margin-top:4px"></h3>
+      </div>
+      <button class="icon-btn" data-action="close-overlay" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap" role="status" aria-live="polite"></div>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<script>
+/* =========================================================
+   FUNDEDSCOPE — SINGLE FILE PROTOTYPE
+   All data below is fictional demo data for design evaluation.
+   No backend, no tracking, no real affiliate links.
+   ========================================================= */
+(function () {
+"use strict";
+
+/* =========================
+   ICONS
+   ========================= */
+var ICON = {
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  filter:'<path d="M3 5h18M6 12h12M10 19h4"/>',
+  chevron:'<path d="m6 9 6 6 6-6"/>',
+  chevronRight:'<path d="m9 6 6 6-6 6"/>',
+  arrowRight:'<path d="M4 12h15"/><path d="m13 6 6 6-6 6"/>',
+  arrowLeft:'<path d="M20 12H5"/><path d="m11 6-6 6 6 6"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+  check:'<path d="m5 12 5 5L20 7"/>',
+  checkSm:'<path d="m5 12 4 4L19 7"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.4"/>',
+  close:'<path d="M6 6l12 12M18 6L6 18"/>',
+  compare:'<path d="M4 6h7M4 12h7M4 18h7"/><path d="M14 8l3-3 3 3"/><path d="M17 5v14"/>',
+  external:'<path d="M14 5h5v5"/><path d="M19 5l-8 8"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>',
+  alert:'<path d="M12 8v5"/><path d="M12 16.5v.5"/><circle cx="12" cy="12" r="9"/>',
+  book:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5V19"/>',
+  shield:'<path d="M12 3l7 3v5.5c0 4-3 7.5-7 9.5-4-2-7-5.5-7-9.5V6z"/>',
+  tag:'<path d="M3 11V5a2 2 0 0 1 2-2h6l10 10-8 8z"/><path d="M7.5 7.5h.01"/>',
+  star:'<path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.11 6.45L12 17.45 6.19 20.5 7.3 14.05 2.6 9.45l6.5-.95z"/>',
+  scale:'<path d="M12 3v18"/><path d="M5 7h14"/><path d="M5 7l-3 7h6z"/><path d="M19 7l3 7h-6z"/>',
+  target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>',
+  layers:'<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 14l9 5 9-5"/>',
+  wallet:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><path d="M3 7.5V17a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H5.5A2.5 2.5 0 0 1 3 7.5z"/><path d="M17.5 13h.01"/>',
+  trend:'<path d="M3 17l5-6 4 4 7-8"/><path d="M15 7h4v4"/>'
+};
+function svg(name, size, stroke) {
+  return '<svg width="' + (size || 16) + '" height="' + (size || 16) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' +
+    (stroke || 1.8) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[name] + '</svg>';
+}
+function starSvg() {
+  return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' + ICON.star + '</svg>';
+}
+var STAR5 = starSvg() + starSvg() + starSvg() + starSvg() + starSvg();
+
+/* =========================
+   DEMO DATA — FIRMS
+   Fictional firms. Figures are illustrative only.
+   ========================= */
+var FIRMS = [
+  {
+    id:1, name:"Atlas Funding", slug:"atlas-funding", color:"#1F3B5C",
+    rating:4.8, reviews:124, startingPrice:49, maxFunding:200000,
+    profitSplit:90, dailyDrawdown:5, maxDrawdown:10, drawdownType:"Static",
+    challengeType:"2-Step", markets:["Forex","Indices"], platforms:["MT5","cTrader"],
+    payout:"14 days", payoutDays:14, discount:10, discountCode:"ATLAS10", verified:"September 5, 2026", expired:false,
+    accountSizes:[10000,25000,50000,100000,200000],
+    tagline:"Multi-step programs built for traders who want flexible evaluation rules and no consistency requirement.",
+    rules:{ minDays:5, news:"Allowed", weekend:"Allowed", ea:"Allowed", consistency:"None", timeLimit:"Unlimited" },
+    pros:["Competitive starting price for a 2-step program","No consistency rule on payouts","Weekend and news holding allowed","Two platform options including cTrader"],
+    considerations:["Profit split starts at 90% and does not scale further","Payout frequency depends on program tier"],
+    reviewList:[
+      { quote:"Simple rules and a very clear dashboard. Nothing hidden in the fine print.", stars:5, tag:"Evaluation passed" },
+      { quote:"Support answered within a day. Payout arrived on the schedule they published.", stars:5, tag:"Funded stage" },
+      { quote:"The 2-step target took a while, but the drawdown model is easy to track.", stars:4, tag:"Evaluation stage" }
+    ]
+  },
+  {
+    id:2, name:"Northstar Capital", slug:"northstar-capital", color:"#28405E",
+    rating:4.6, reviews:98, startingPrice:59, maxFunding:300000,
+    profitSplit:95, dailyDrawdown:4, maxDrawdown:8, drawdownType:"Trailing",
+    challengeType:"1-Step", markets:["Forex","Crypto"], platforms:["cTrader","TradingView"],
+    payout:"7 days", payoutDays:7, discount:15, discountCode:"NORTH15", verified:"September 3, 2026", expired:false,
+    accountSizes:[10000,25000,50000,100000,300000],
+    tagline:"A single-phase evaluation with the highest profit split in this comparison and a weekly payout cycle.",
+    rules:{ minDays:4, news:"Restricted", weekend:"Not allowed", ea:"Allowed", consistency:"40% max day", timeLimit:"Unlimited" },
+    pros:["95% profit split on funded accounts","7-day payout cycle","Single evaluation phase","TradingView execution supported"],
+    considerations:["Trailing drawdown is stricter than a static model","News trading is restricted around high-impact releases","Weekend holding is not permitted"],
+    reviewList:[
+      { quote:"Fast payouts, exactly as advertised. The trailing drawdown needs planning though.", stars:5, tag:"Funded stage" },
+      { quote:"One phase suits my style. I had to adjust position sizing for the daily limit.", stars:4, tag:"Evaluation passed" },
+      { quote:"Clear rules page, but I would like weekend holding as an option.", stars:4, tag:"Evaluation stage" }
+    ]
+  },
+  {
+    id:3, name:"Vertex Traders", slug:"vertex-traders", color:"#3E4A5A",
+    rating:4.4, reviews:212, startingPrice:39, maxFunding:150000,
+    profitSplit:80, dailyDrawdown:5, maxDrawdown:12, drawdownType:"Static",
+    challengeType:"2-Step", markets:["Forex","Indices","Commodities"], platforms:["MT4","MT5"],
+    payout:"21 days", payoutDays:21, discount:20, discountCode:"VERTEX20", verified:"August 28, 2026", expired:true,
+    accountSizes:[5000,10000,25000,50000,150000],
+    tagline:"Low-cost entry with the widest maximum drawdown allowance of the firms compared here.",
+    rules:{ minDays:5, news:"Allowed", weekend:"Allowed", ea:"Allowed", consistency:"None", timeLimit:"Unlimited" },
+    pros:["Lowest entry price in this comparison","12% maximum drawdown gives more room","Commodities included as standard","Large review base"],
+    considerations:["80% profit split is below the group average","21-day payout cycle is slower than most","MetaTrader only"],
+    reviewList:[
+      { quote:"Good value for a first evaluation. The wider drawdown made the target realistic.", stars:5, tag:"Evaluation stage" },
+      { quote:"Waiting three weeks for a payout is the main downside for me.", stars:4, tag:"Funded stage" },
+      { quote:"Rules are straightforward and the platform choice is familiar.", stars:4, tag:"Evaluation passed" }
+    ]
+  },
+  {
+    id:4, name:"ApexForge", slug:"apexforge", color:"#54452F", mark:"AX",
+    rating:4.7, reviews:156, startingPrice:79, maxFunding:400000,
+    profitSplit:90, dailyDrawdown:4, maxDrawdown:10, drawdownType:"Static",
+    challengeType:"1-Step", markets:["Futures","Indices"], platforms:["NinjaTrader","TradingView"],
+    payout:"10 days", payoutDays:10, discount:12, discountCode:"APEX12", verified:"September 4, 2026", expired:false,
+    accountSizes:[25000,50000,100000,200000,400000],
+    tagline:"Futures-focused single-phase evaluations with large allocation ceilings and intraday-oriented rules.",
+    rules:{ minDays:3, news:"Allowed", weekend:"Not allowed", ea:"Restricted", consistency:"None", timeLimit:"Unlimited" },
+    pros:["Futures and index products in one program","Up to $400K allocation","Only 3 minimum trading days","Static drawdown with a clear daily limit"],
+    considerations:["Higher entry price than most 1-step programs","No overnight or weekend positions","Automated strategies need approval"],
+    reviewList:[
+      { quote:"The futures rule set is written for intraday traders, which is what I needed.", stars:5, tag:"Funded stage" },
+      { quote:"Higher price, but the allocation ceiling justified it for me.", stars:5, tag:"Evaluation passed" },
+      { quote:"No overnight holding is limiting on slower days.", stars:4, tag:"Evaluation stage" }
+    ]
+  },
+  {
+    id:5, name:"Summit Funded", slug:"summit-funded", color:"#2E4A44",
+    rating:4.2, reviews:64, startingPrice:99, maxFunding:250000,
+    profitSplit:85, dailyDrawdown:3, maxDrawdown:6, drawdownType:"Static",
+    challengeType:"2-Step", markets:["Forex","Metals"], platforms:["MT5"],
+    payout:"30 days", payoutDays:30, discount:0, discountCode:"", verified:"September 1, 2026", expired:false,
+    accountSizes:[25000,50000,100000,250000],
+    tagline:"Conservative risk parameters aimed at slower, lower-frequency strategies with monthly payouts.",
+    rules:{ minDays:10, news:"Restricted", weekend:"Allowed", ea:"Not allowed", consistency:"30% max day", timeLimit:"Unlimited" },
+    pros:["Very clear, conservative risk framework","Weekend holding permitted","Metals included alongside forex"],
+    considerations:["Tightest drawdown limits in this comparison","No current discount offer","Monthly payout cycle","Manual trading only"],
+    reviewList:[
+      { quote:"Strict, but the parameters are published clearly before you buy.", stars:4, tag:"Evaluation stage" },
+      { quote:"Suits a swing approach. Not the right fit if you scalp.", stars:4, tag:"Funded stage" },
+      { quote:"I would like a faster payout option at the funded stage.", stars:4, tag:"Funded stage" }
+    ]
+  },
+  {
+    id:6, name:"Nova Prop", slug:"nova-prop", color:"#4A3352",
+    rating:4.5, reviews:187, startingPrice:29, maxFunding:100000,
+    profitSplit:80, dailyDrawdown:4, maxDrawdown:8, drawdownType:"Trailing",
+    challengeType:"Instant", markets:["Crypto","Forex"], platforms:["TradingView","MT5"],
+    payout:"14 days", payoutDays:14, discount:25, discountCode:"NOVA25", verified:"September 6, 2026", expired:false,
+    accountSizes:[5000,10000,25000,50000,100000],
+    tagline:"Instant funding with no evaluation phase, aimed at traders who want to start on a live-rules account immediately.",
+    rules:{ minDays:0, news:"Allowed", weekend:"Allowed", ea:"Allowed", consistency:"25% max day", timeLimit:"Unlimited" },
+    pros:["No evaluation phase","Lowest starting price with the largest current discount","Crypto included as a core market","No minimum trading days"],
+    considerations:["80% profit split","Trailing drawdown on instant accounts","Maximum allocation is capped at $100K","Consistency rule applies to payouts"],
+    reviewList:[
+      { quote:"Skipping the evaluation was the main appeal. Rules were clear from day one.", stars:5, tag:"Funded stage" },
+      { quote:"The consistency rule is easy to miss — read it before your first payout.", stars:4, tag:"Funded stage" },
+      { quote:"Good entry price and crypto pairs are actually usable.", stars:5, tag:"Funded stage" }
+    ]
+  },
+  {
+    id:7, name:"BluePeak Trading", slug:"bluepeak-trading", color:"#1E4652",
+    rating:4.3, reviews:91, startingPrice:69, maxFunding:200000,
+    profitSplit:88, dailyDrawdown:5, maxDrawdown:10, drawdownType:"Static",
+    challengeType:"2-Step", markets:["Futures","Forex"], platforms:["NinjaTrader","MT5"],
+    payout:"14 days", payoutDays:14, discount:10, discountCode:"BLUE10", verified:"August 30, 2026", expired:true,
+    accountSizes:[10000,25000,50000,100000,200000],
+    tagline:"A balanced two-step program covering both futures and forex under a single rule set.",
+    rules:{ minDays:5, news:"Allowed", weekend:"Allowed", ea:"Allowed", consistency:"None", timeLimit:"Unlimited" },
+    pros:["Futures and forex under one account","No consistency rule","Balanced 88% split with static drawdown"],
+    considerations:["Current discount code has expired","Mid-range pricing with no standout metric"],
+    reviewList:[
+      { quote:"Solid middle-of-the-road option. Nothing surprising, which I mean positively.", stars:4, tag:"Evaluation passed" },
+      { quote:"Being able to trade both futures and FX on one set of rules is convenient.", stars:5, tag:"Funded stage" },
+      { quote:"The offer expired before I bought, which was a shame.", stars:4, tag:"Evaluation stage" }
+    ]
+  },
+  {
+    id:8, name:"EdgeFund", slug:"edgefund", color:"#2B3A57",
+    rating:4.9, reviews:143, startingPrice:89, maxFunding:500000,
+    profitSplit:92, dailyDrawdown:6, maxDrawdown:12, drawdownType:"Static",
+    challengeType:"1-Step", markets:["Forex","Indices","Crypto"], platforms:["cTrader","MT5","TradingView"],
+    payout:"7 days", payoutDays:7, discount:8, discountCode:"EDGE8", verified:"September 5, 2026", expired:false,
+    accountSizes:[25000,50000,100000,250000,500000],
+    tagline:"The broadest rule set in this comparison: three markets, three platforms and a 7-day payout cycle.",
+    rules:{ minDays:3, news:"Allowed", weekend:"Allowed", ea:"Allowed", consistency:"None", timeLimit:"Unlimited" },
+    pros:["Highest rated firm in this comparison","6% daily and 12% maximum drawdown","Weekly payouts with a 92% split","Three markets and three platforms"],
+    considerations:["Higher entry price","Smallest current discount","$25K is the smallest available account"],
+    reviewList:[
+      { quote:"The most permissive rule set I have used, and payouts are weekly.", stars:5, tag:"Funded stage" },
+      { quote:"Expensive up front, but the drawdown room changes how you can trade.", stars:5, tag:"Evaluation passed" },
+      { quote:"Would like a smaller starter account to test the platform first.", stars:4, tag:"Evaluation stage" }
+    ]
+  },
+  {
+    id:9, name:"CapitalScale", slug:"capitalscale", color:"#4B3A34",
+    rating:4.1, reviews:57, startingPrice:45, maxFunding:120000,
+    profitSplit:75, dailyDrawdown:3, maxDrawdown:6, drawdownType:"Trailing",
+    challengeType:"2-Step", markets:["Forex"], platforms:["MT4"],
+    payout:"30 days", payoutDays:30, discount:15, discountCode:"SCALE15", verified:"September 2, 2026", expired:false,
+    accountSizes:[5000,10000,25000,60000,120000],
+    tagline:"A budget forex-only program with a scaling plan that raises the split as targets are met.",
+    rules:{ minDays:8, news:"Not allowed", weekend:"Not allowed", ea:"Not allowed", consistency:"20% max day", timeLimit:"60 days" },
+    pros:["Low entry price with a standing discount","Scaling plan increases allocation over time","Small $5K starter account available"],
+    considerations:["75% starting profit split","Tight trailing drawdown","News and weekend trading not permitted","60-day time limit on the evaluation"],
+    reviewList:[
+      { quote:"Cheap way to test a strategy, provided you can work inside the restrictions.", stars:4, tag:"Evaluation stage" },
+      { quote:"The scaling plan is the reason to stay past the first payout.", stars:4, tag:"Funded stage" },
+      { quote:"MT4 only felt dated compared to other firms I tried.", stars:4, tag:"Evaluation passed" }
+    ]
+  },
+  {
+    id:10, name:"PrimeChallenge", slug:"primechallenge", color:"#37474A",
+    rating:4.6, reviews:108, startingPrice:55, maxFunding:300000,
+    profitSplit:90, dailyDrawdown:5, maxDrawdown:10, drawdownType:"Static",
+    challengeType:"Instant", markets:["Indices","Commodities","Forex"], platforms:["MT5","TradingView"],
+    payout:"10 days", payoutDays:10, discount:0, discountCode:"", verified:"September 4, 2026", expired:false,
+    accountSizes:[10000,25000,50000,150000,300000],
+    tagline:"Instant funding with a static drawdown model and index and commodity coverage as standard.",
+    rules:{ minDays:0, news:"Allowed", weekend:"Allowed", ea:"Allowed", consistency:"None", timeLimit:"Unlimited" },
+    pros:["Instant funding with a static drawdown model","No consistency rule","Indices and commodities included","No minimum trading days"],
+    considerations:["No current discount offer","Instant funding carries a higher one-off fee per account size"],
+    reviewList:[
+      { quote:"Static drawdown on an instant account is unusual and it made a difference.", stars:5, tag:"Funded stage" },
+      { quote:"Straightforward to start. Index products behaved as expected.", stars:4, tag:"Funded stage" },
+      { quote:"No discount available, so compare the total cost carefully.", stars:4, tag:"Evaluation stage" }
+    ]
+  }
+];
+
+/* =========================
+   DEMO DATA — GUIDES
+   ========================= */
+var GUIDES = [
+  {
+    id:"what-is-a-prop-firm", icon:"book", title:"What is a prop firm?", read:"4 min read",
+    excerpt:"How proprietary trading firms work, what you are actually buying, and where the money comes from.",
+    body:[
+      { h:"The basic model", p:"A proprietary trading firm gives traders access to a firm-funded account in exchange for a share of the profits. Most retail-facing firms do not hand out capital directly: they sell an evaluation — a simulated account with a profit target and risk limits. Pass it, and you are given a funded account under the same rule set." },
+      { h:"What you are buying", p:"The upfront fee pays for the evaluation, not the capital. Some firms refund it after your first payout; others do not. Read the refund terms before treating the fee as recoverable." },
+      { list:["The evaluation fee is the product being sold.","The profit split determines what you keep once funded.","Risk rules decide how long you stay funded — they matter more than the headline split."] },
+      { h:"Why the rules matter more than the price", p:"A $49 evaluation with a 3% daily drawdown can be harder to pass than a $99 evaluation with a 6% limit. Compare the full rule set, not just the entry price." }
+    ]
+  },
+  {
+    id:"static-vs-trailing", icon:"scale", title:"Static vs trailing drawdown", read:"5 min read",
+    excerpt:"The single rule that most often ends an account — and how the two models behave differently.",
+    body:[
+      { h:"Static drawdown", p:"A static (or absolute) maximum drawdown is a fixed floor. On a $100,000 account with a 10% maximum drawdown, your account fails if the balance touches $90,000 — no matter how much profit you made first. The floor never moves." },
+      { h:"Trailing drawdown", p:"A trailing drawdown follows your account upward. If you grow the same account to $105,000, the floor rises to $94,500. Profits raise the failure level, which means a large winning trade followed by a normal drawdown can end an account that is still in profit overall." },
+      { list:["Static: the floor is fixed at purchase.","Trailing: the floor follows your highest balance or equity.","Some firms stop the trail once the account reaches its initial balance plus the drawdown amount."] },
+      { h:"Which suits you", p:"Traders with volatile equity curves generally prefer static models. Trailing models are more manageable for strategies with small, consistent gains." }
+    ]
+  },
+  {
+    id:"one-vs-two-step", icon:"layers", title:"One-step vs two-step challenges", read:"4 min read",
+    excerpt:"Fewer phases is not automatically easier. Compare the targets and the risk limits together.",
+    body:[
+      { h:"Two-step evaluations", p:"Two phases, usually with an 8% target in phase one and 5% in phase two. Total profit needed is higher, but the per-phase targets are modest and time limits are often generous or absent." },
+      { h:"One-step evaluations", p:"A single phase with a target around 10%. It is faster, but firms usually compensate with tighter drawdown limits or a consistency rule." },
+      { h:"Instant funding", p:"No evaluation at all. You pay more per unit of allocation, and the risk rules on the funded account are typically the strictest of the three formats." },
+      { list:["One-step: faster, tighter risk limits.","Two-step: slower, more room per phase.","Instant: no target, highest cost per dollar of allocation."] }
+    ]
+  },
+  {
+    id:"how-payouts-work", icon:"wallet", title:"How prop firm payouts work", read:"5 min read",
+    excerpt:"Payout cycles, minimum thresholds, consistency rules and the details that delay your first withdrawal.",
+    body:[
+      { h:"The cycle", p:"Payout frequency ranges from weekly to monthly. A 7-day cycle is not automatically better: check whether the clock starts at your first funded trade or at the end of a fixed calendar period." },
+      { h:"Consistency rules", p:"Many firms cap how much of your total profit can come from a single day. A 30% consistency rule means one exceptional day can delay a payout until the rest of your results catch up." },
+      { list:["Check the minimum payout threshold.","Check whether the split changes after the first payout.","Check whether the fee is refunded with the first withdrawal."] },
+      { h:"Processing time", p:"The advertised cycle is the request window, not the settlement time. Add a few business days for processing." }
+    ]
+  },
+  {
+    id:"compare-rules", icon:"target", title:"How to compare prop firm rules", read:"6 min read",
+    excerpt:"A short checklist for reading rule sets side by side without getting lost in marketing copy.",
+    body:[
+      { h:"Start with the failure conditions", p:"Before comparing profit splits, list every way an account can be closed: daily drawdown, maximum drawdown, prohibited instruments, news windows, weekend exposure, and inactivity." },
+      { h:"Normalise the cost", p:"Compare the fee per dollar of allocation, not the headline entry price. A $49 fee for a $10,000 account is more expensive per dollar than $99 for a $50,000 account." },
+      { list:["Failure conditions first, features second.","Normalise cost per unit of allocation.","Confirm the drawdown model — static or trailing.","Confirm the payout cycle and any consistency rule.","Check platform and market coverage against your actual strategy."] },
+      { h:"Then compare the offer", p:"A discount only matters once two firms are genuinely comparable on rules. Comparing an offer before comparing the rule set is how traders end up on the wrong program." }
+    ]
+  }
+];
+
+/* =========================
+   TOOLTIP COPY
+   ========================= */
+var TIPS = {
+  maxDrawdown:{ t:"Maximum drawdown", d:"The most your account can lose from its starting balance before the account is closed. A higher percentage gives you more room." },
+  dailyDrawdown:{ t:"Daily drawdown", d:"The most you can lose in a single trading day. Breaching it usually ends the account immediately." },
+  profitSplit:{ t:"Profit split", d:"The share of trading profits you keep once funded. The rest goes to the firm." },
+  trailing:{ t:"Trailing drawdown", d:"A loss limit that rises with your account balance, so profits raise the level at which the account fails." },
+  consistency:{ t:"Consistency rule", d:"A cap on how much of your total profit can come from a single day. It can delay a payout after one large winning day." },
+  payout:{ t:"Payout cycle", d:"How often you can request a withdrawal once funded. Processing time is additional." },
+  challenge:{ t:"Challenge type", d:"One-step and two-step evaluations require hitting a profit target first. Instant funding skips the evaluation." },
+  maxFunding:{ t:"Maximum funding", d:"The largest account size the firm offers on this program, before any scaling plan." }
+};
+
+/* =========================
+   APP STATE
+   ========================= */
+var LS_KEY = "fundedscope.compare.v1";
+var state = {
+  view:"home",
+  slug:null,
+  compare:loadCompare(),
+  query:"",
+  sort:"recommended",
+  filters:{ markets:[], challenges:[], platforms:[], maxPrice:120, minSplit:0, minDrawdown:0, hasDiscount:false },
+  matcher:{ step:0, market:null, challenge:null, priorities:[], size:null, done:false, loading:false, results:[] },
+  quick:{ priorities:[], results:null, loading:false }
+};
+var PRICE_MAX = 120;
+
+function loadCompare(){
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    var arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.filter(function(s){ return !!firmBySlug(s); }).slice(0,3);
+  } catch (e) { return []; }
+}
+function saveCompare(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state.compare)); } catch (e) {}
+}
+function firmBySlug(slug){
+  for (var i=0;i<FIRMS.length;i++) if (FIRMS[i].slug === slug) return FIRMS[i];
+  return null;
+}
+
+/* =========================
+   ANALYTICS SIMULATION
+   (console only — nothing leaves the browser)
+   ========================= */
+var eventLog = [];
+function track(name, payload){
+  var evt = Object.assign({ event:name, at:new Date().toISOString() }, payload || {});
+  eventLog.push(evt);
+  console.log(evt);
+}
+window.__fundedscopeEvents = eventLog;
+
+/* =========================
+   HELPERS
+   ========================= */
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function money(n){ return "$" + n.toLocaleString("en-US"); }
+function shortMoney(n){
+  if (n >= 1000000) return "$" + (n/1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + "M";
+  if (n >= 1000) return "$" + Math.round(n/1000) + "K";
+  return "$" + n;
+}
+function initials(name){
+  var parts = name.replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+function logo(firm, large){
+  // `mark` overrides the derived monogram where two firms would otherwise collide.
+  return '<span class="logo' + (large ? " logo-lg" : "") + '" style="background:' + firm.color + '" aria-hidden="true">' + (firm.mark || initials(firm.name)) + '</span>';
+}
+function stars(rating){
+  var pct = (rating / 5) * 100;
+  return '<span class="stars" role="img" aria-label="' + rating + ' out of 5 stars">' +
+    '<span class="stars-bg">' + STAR5 + '</span>' +
+    '<span class="stars-fg" style="width:' + pct + '%">' + STAR5 + '</span></span>';
+}
+function ratingLine(firm, withCount){
+  return '<span class="rating-line">' + stars(firm.rating) +
+    '<span class="rating-val num">' + firm.rating.toFixed(1) + '</span>' +
+    (withCount ? '<span class="meta num">' + firm.reviews + " reviews</span>" : "") + "</span>";
+}
+function tipBtn(key){
+  return '<button class="info" data-tip="' + key + '" aria-label="' + esc(TIPS[key].t) + ' — what is this?" type="button">' + svg("info", 14, 1.7) + "</button>";
+}
+function offerBadge(firm){
+  if (!firm.discount) return '<span class="badge badge-muted">No current offer</span>';
+  if (firm.expired) return '<span class="badge badge-expired">Offer expired</span>';
+  return '<span class="badge badge-offer">' + firm.discount + "% OFF</span>";
+}
+function offerBadgeCompact(firm){
+  if (!firm.discount) return '<span class="badge badge-muted">None</span>';
+  if (firm.expired) return '<span class="badge badge-expired">Expired</span>';
+  return '<span class="badge badge-offer">' + firm.discount + "% OFF</span>";
+}
+function hasLiveOffer(firm){ return firm.discount > 0 && !firm.expired; }
+function programsFor(firm){
+  var factors = [1, 1.85, 3.4, 6, 10.4];
+  return firm.accountSizes.map(function(size, i){
+    var raw = firm.startingPrice * (factors[i] || 12);
+    var price = Math.max(firm.startingPrice, Math.round(raw / 10) * 10 - 1);
+    if (i === 0) price = firm.startingPrice;
+    var target = firm.challengeType === "2-Step" ? "8% / 5%" : (firm.challengeType === "1-Step" ? "10%" : "No target");
+    return { size:size, price:price, target:target };
+  });
+}
+
+/* =========================
+   FILTER / SORT / SEARCH ENGINE
+   ========================= */
+var ALL_MARKETS = ["Forex","Futures","Crypto","Indices","Commodities","Metals"];
+var ALL_CHALLENGES = ["1-Step","2-Step","Instant"];
+var ALL_PLATFORMS = ["MT4","MT5","cTrader","TradingView","NinjaTrader"];
+
+function activeFilterCount(){
+  var f = state.filters, n = 0;
+  n += f.markets.length + f.challenges.length + f.platforms.length;
+  if (f.maxPrice < PRICE_MAX) n++;
+  if (f.minSplit > 0) n++;
+  if (f.minDrawdown > 0) n++;
+  if (f.hasDiscount) n++;
+  return n;
+}
+function matchesQuery(firm, q){
+  if (!q) return true;
+  var hay = [firm.name, firm.challengeType, firm.tagline, firm.drawdownType].concat(firm.markets, firm.platforms).join(" ").toLowerCase();
+  var norm = q.toLowerCase().replace(/[-\s]+/g, " ").trim();
+  var alias = { "one step":"1-step", "1 step":"1-step", "two step":"2-step", "2 step":"2-step", "instant funding":"instant" };
+  if (alias[norm]) return hay.replace(/[-\s]+/g," ").indexOf(alias[norm].replace("-"," ")) > -1;
+  return hay.replace(/[-\s]+/g," ").indexOf(norm) > -1;
+}
+function filteredFirms(){
+  var f = state.filters;
+  var list = FIRMS.filter(function(firm){
+    if (!matchesQuery(firm, state.query)) return false;
+    if (f.markets.length && !f.markets.some(function(m){ return firm.markets.indexOf(m) > -1; })) return false;
+    if (f.challenges.length && f.challenges.indexOf(firm.challengeType) === -1) return false;
+    if (f.platforms.length && !f.platforms.some(function(p){ return firm.platforms.indexOf(p) > -1; })) return false;
+    if (firm.startingPrice > f.maxPrice) return false;
+    if (firm.profitSplit < f.minSplit) return false;
+    if (firm.maxDrawdown < f.minDrawdown) return false;
+    if (f.hasDiscount && !hasLiveOffer(firm)) return false;
+    return true;
+  });
+  return sortFirms(list);
+}
+function recommendedScore(firm){
+  // Balanced composite used for the default ordering.
+  return firm.rating * 10
+    + firm.profitSplit * 0.28
+    + firm.maxDrawdown * 0.9
+    - firm.startingPrice * 0.06
+    - firm.payoutDays * 0.22
+    + (hasLiveOffer(firm) ? 3 : 0);
+}
+function sortFirms(list){
+  var s = state.sort;
+  var copy = list.slice();
+  copy.sort(function(a,b){
+    if (s === "rating") return b.rating - a.rating || a.startingPrice - b.startingPrice;
+    if (s === "price") return a.startingPrice - b.startingPrice || b.rating - a.rating;
+    if (s === "split") return b.profitSplit - a.profitSplit || b.rating - a.rating;
+    if (s === "drawdown") return a.maxDrawdown - b.maxDrawdown || b.rating - a.rating;
+    return recommendedScore(b) - recommendedScore(a);
+  });
+  return copy;
+}
+
+/* =========================
+   MATCHING ENGINE
+   Weights: market 30, challenge 20, price 15, drawdown 15, split 10, payout 10
+   Selected priorities double the weight of their component before normalising.
+   ========================= */
+var RANGE = (function(){
+  function span(key){
+    var vals = FIRMS.map(function(f){ return f[key]; });
+    return { min:Math.min.apply(null, vals), max:Math.max.apply(null, vals) };
+  }
+  return { price:span("startingPrice"), split:span("profitSplit"), draw:span("maxDrawdown"), payout:span("payoutDays") };
+})();
+function norm(v, r){ return r.max === r.min ? 1 : (v - r.min) / (r.max - r.min); }
+
+function scoreFirm(firm, prefs){
+  var p = prefs.priorities || [];
+  var w = { market:30, challenge:20, price:15, drawdown:15, split:10, payout:10 };
+  if (p.indexOf("price") > -1) w.price *= 2;
+  if (p.indexOf("drawdown") > -1) w.drawdown *= 2;
+  if (p.indexOf("split") > -1) w.split *= 2;
+  if (p.indexOf("payout") > -1) w.payout *= 2;
+  if (p.indexOf("flexible") > -1) { w.flex = 20; }
+
+  var q = {};
+  q.market = !prefs.market || prefs.market === "any" ? 0.8 : (firm.markets.indexOf(prefs.market) > -1 ? 1 : 0.2);
+  q.challenge = !prefs.challenge || prefs.challenge === "any" ? 0.8 : (firm.challengeType === prefs.challenge ? 1 : 0.25);
+  q.price = 1 - norm(firm.startingPrice, RANGE.price);
+  q.drawdown = norm(firm.maxDrawdown, RANGE.draw);
+  q.split = norm(firm.profitSplit, RANGE.split);
+  q.payout = 1 - norm(firm.payoutDays, RANGE.payout);
+  if (w.flex) {
+    var flex = 0;
+    if (firm.rules.consistency === "None") flex += 0.34;
+    if (firm.rules.news === "Allowed") flex += 0.22;
+    if (firm.rules.weekend === "Allowed") flex += 0.22;
+    if (firm.rules.ea === "Allowed") flex += 0.12;
+    if (firm.drawdownType === "Static") flex += 0.10;
+    q.flex = Math.min(1, flex);
+  }
+
+  // Graded components (price, drawdown, split, payout, flexibility) are scaled onto
+  // 0.4–1.0 rather than 0–1: the weakest firm on price is still a usable option, so it
+  // keeps partial credit. Market and challenge fit stay unscaled — those are pass/fail.
+  var graded = ["price","drawdown","split","payout","flex"];
+  var total = 0, max = 0;
+  Object.keys(w).forEach(function(k){
+    var v = graded.indexOf(k) > -1 ? (0.4 + 0.6 * q[k]) : q[k];
+    total += v * w[k];
+    max += w[k];
+  });
+  var pct = (total / max) * 100;
+
+  // Account-size fit acts as a penalty rather than a separate weight.
+  var sizePenalty = 1;
+  if (prefs.size && firm.maxFunding < prefs.size) sizePenalty = 0.86;
+  pct = pct * sizePenalty;
+
+  return { firm:firm, score:Math.max(41, Math.min(99, Math.round(pct))), q:q, sizeOk:sizePenalty === 1 };
+}
+function reasonsFor(res, prefs){
+  var f = res.firm, out = [], p = prefs.priorities || [];
+  if (prefs.market && prefs.market !== "any" && f.markets.indexOf(prefs.market) > -1) out.push("Covers " + prefs.market.toLowerCase());
+  if (prefs.challenge && prefs.challenge !== "any" && f.challengeType === prefs.challenge) out.push(f.challengeType + " evaluation");
+  if (p.indexOf("price") > -1 && res.q.price > 0.5) out.push("From " + money(f.startingPrice));
+  if (p.indexOf("split") > -1 && res.q.split > 0.5) out.push(f.profitSplit + "% profit split");
+  if (p.indexOf("drawdown") > -1 && res.q.drawdown > 0.5) out.push(f.maxDrawdown + "% max drawdown");
+  if (p.indexOf("payout") > -1 && res.q.payout > 0.5) out.push(f.payout + " payout cycle");
+  if (p.indexOf("flexible") > -1 && res.q.flex > 0.6) out.push("No consistency rule");
+  if (prefs.size && res.sizeOk) out.push("Offers " + shortMoney(prefs.size) + " accounts");
+  if (!out.length) {
+    if (res.q.price > 0.6) out.push("Low entry cost");
+    if (res.q.split > 0.6) out.push(f.profitSplit + "% profit split");
+    if (res.q.drawdown > 0.6) out.push("Wider drawdown allowance");
+    if (!out.length) out.push("Balanced across price, rules and payouts");
+  }
+  return out.slice(0, 4);
+}
+function whySentence(res, prefs){
+  var f = res.firm, bits = [], p = prefs.priorities || [];
+  if (p.indexOf("price") > -1) bits.push("low entry cost");
+  if (p.indexOf("drawdown") > -1) bits.push("drawdown room");
+  if (p.indexOf("split") > -1) bits.push("a high profit split");
+  if (p.indexOf("payout") > -1) bits.push("fast payouts");
+  if (p.indexOf("flexible") > -1) bits.push("flexible rules");
+  var pref = bits.length ? bits.join(", ").replace(/, ([^,]*)$/, " and $1") : "a balanced rule set";
+  return "Matches your preference for " + pref + " — " + money(f.startingPrice) + " entry, " + f.profitSplit + "% split, " + f.maxDrawdown + "% max drawdown, " + f.payout + " payouts.";
+}
+function runMatch(prefs, count){
+  return FIRMS.map(function(f){ return scoreFirm(f, prefs); })
+    .sort(function(a,b){ return b.score - a.score || b.firm.rating - a.firm.rating; })
+    .slice(0, count || 3);
+}
+
+/* =========================
+   RENDER — SHARED PARTIALS
+   ========================= */
+function firmCard(firm, opts){
+  opts = opts || {};
+  var selected = state.compare.indexOf(firm.slug) > -1;
+  return '<article class="firm-card' + (selected ? " selected" : "") + '">' +
+    '<div class="fc-top">' + logo(firm) +
+      '<div class="grow">' +
+        '<h3 class="fc-name"><a href="#/firm/' + firm.slug + '" data-nav="firm" data-slug="' + firm.slug + '">' + esc(firm.name) + "</a></h3>" +
+        '<div style="margin-top:3px">' + ratingLine(firm, true) + "</div>" +
+      "</div>" +
+    "</div>" +
+    '<div class="fc-stats">' +
+      '<div class="stat"><div class="stat-val num">' + money(firm.startingPrice) + '</div><div class="stat-key">From</div></div>' +
+      '<div class="stat"><div class="stat-val num">' + firm.profitSplit + '%</div><div class="stat-key">Profit split</div></div>' +
+      '<div class="stat"><div class="stat-val num">' + firm.maxDrawdown + '%</div><div class="stat-key">Max drawdown</div></div>' +
+    "</div>" +
+    '<div class="fc-offer">' + offerBadge(firm) +
+      (hasLiveOffer(firm) ? '<span class="meta num">Code ' + esc(firm.discountCode) + "</span>" : "") +
+      '<span class="badge badge-muted" style="margin-left:auto">' + esc(firm.challengeType) + "</span>" +
+    "</div>" +
+    '<div class="fc-actions">' +
+      '<button class="btn btn-secondary btn-sm" data-action="toggle-compare" data-slug="' + firm.slug + '" aria-pressed="' + selected + '">' +
+        svg(selected ? "check" : "compare", 15) + (selected ? "Selected" : "Compare") + "</button>" +
+      '<a class="btn btn-primary btn-sm" href="#/firm/' + firm.slug + '" data-nav="firm" data-slug="' + firm.slug + '">View firm</a>' +
+    "</div>" +
+    (opts.hideVerify ? "" : '<div class="fc-verify">' + svg("shield", 13, 1.9) + "<span>Rules checked " + esc(firm.verified) + "</span></div>") +
+    "</article>";
+}
+function dealCard(firm){
+  var live = hasLiveOffer(firm);
+  return '<article class="deal-card' + (live ? "" : " expired") + '">' +
+    '<div class="spread">' +
+      '<div class="row" style="gap:10px">' + logo(firm) + '<div><div style="font-weight:600; font-size:14.5px">' + esc(firm.name) + "</div>" +
+      '<div class="micro">' + esc(firm.challengeType) + " · " + esc(firm.markets.join(", ")) + "</div></div></div>" +
+    "</div>" +
+    '<div class="deal-amount num">' + firm.discount + "% OFF</div>" +
+    '<p class="deal-desc">' + (live ? "Applies to all evaluation programs." : "This demo offer has expired.") + "</p>" +
+    '<div class="deal-code">' +
+      '<span class="code-chip num">' + esc(firm.discountCode) + "</span>" +
+      '<button class="btn btn-secondary btn-sm btn-copy" data-action="copy" data-code="' + esc(firm.discountCode) + '" data-firm="' + esc(firm.name) + '"' + (live ? "" : " disabled") + '>' + svg("copy", 14) + "Copy</button>" +
+    "</div>" +
+    '<div class="deal-foot">' +
+      (live
+        ? '<span class="badge badge-verified">' + svg("check", 12, 2.4) + "Verified</span>"
+        : '<span class="badge badge-expired">Expired</span>') +
+      '<span class="micro">Last checked ' + esc(firm.verified) + "</span>" +
+    "</div>" +
+    '<div style="display:flex; gap:8px; margin-top:14px">' +
+      '<a class="btn btn-secondary btn-sm grow" href="#/firm/' + firm.slug + '" data-nav="firm" data-slug="' + firm.slug + '">Details</a>' +
+      '<button class="btn btn-primary btn-sm grow" data-action="affiliate" data-slug="' + firm.slug + '"' + (live ? "" : " disabled") + ">Get offer</button>" +
+    "</div>" +
+  "</article>";
+}
+function guideCard(g){
+  return '<button class="guide-card" data-action="open-guide" data-guide="' + g.id + '">' +
+    '<span class="guide-icon">' + svg(g.icon, 18) + "</span>" +
+    "<h3>" + esc(g.title) + "</h3>" +
+    '<p class="meta">' + esc(g.excerpt) + "</p>" +
+    '<span class="guide-foot">Read guide ' + svg("arrowRight", 14) + "</span>" +
+  "</button>";
+}
+function toolbar(showFilter){
+  var n = activeFilterCount();
+  return '<div class="toolbar">' +
+    '<div class="field">' + svg("search", 16) +
+      '<input class="input" id="listSearch" type="search" placeholder="Search firms, markets or challenge types" value="' + esc(state.query) + '" aria-label="Search firms">' +
+    "</div>" +
+    (showFilter === false ? "" :
+      '<button class="btn btn-secondary" data-action="open-filters">' + svg("filter", 15) + "Filters" +
+      (n ? '<span class="count-dot num">' + n + "</span>" : "") + "</button>") +
+    '<label class="sr-only" for="sortSelect">Sort firms</label>' +
+    '<select class="select" id="sortSelect">' +
+      ["recommended|Recommended","rating|Highest rated","price|Lowest price","split|Highest profit split","drawdown|Lowest drawdown"].map(function(o){
+        var parts = o.split("|");
+        return '<option value="' + parts[0] + '"' + (state.sort === parts[0] ? " selected" : "") + ">" + parts[1] + "</option>";
+      }).join("") +
+    "</select>" +
+  "</div>";
+}
+function filterTags(){
+  var f = state.filters, tags = [];
+  function tag(label, kind, value){
+    return '<span class="tag">' + esc(label) +
+      '<button data-action="remove-filter" data-kind="' + kind + '" data-value="' + esc(value) + '" aria-label="Remove filter ' + esc(label) + '">' + svg("close", 11, 2.4) + "</button></span>";
+  }
+  f.markets.forEach(function(m){ tags.push(tag(m, "markets", m)); });
+  f.challenges.forEach(function(c){ tags.push(tag(c, "challenges", c)); });
+  f.platforms.forEach(function(p){ tags.push(tag(p, "platforms", p)); });
+  if (f.maxPrice < PRICE_MAX) tags.push(tag("Under " + money(f.maxPrice), "maxPrice", ""));
+  if (f.minSplit > 0) tags.push(tag(f.minSplit + "%+ split", "minSplit", ""));
+  if (f.minDrawdown > 0) tags.push(tag(f.minDrawdown + "%+ drawdown", "minDrawdown", ""));
+  if (f.hasDiscount) tags.push(tag("Has discount", "hasDiscount", ""));
+  return tags.length ? '<div class="filter-tags">' + tags.join("") + '<button class="btn btn-ghost btn-sm" data-action="clear-filters">Clear all</button></div>' : "";
+}
+function resultMeta(list){
+  return '<div class="toolbar-meta"><p class="meta num">' + list.length + " of " + FIRMS.length + " firms" +
+    (state.query ? ' matching "' + esc(state.query) + '"' : "") + "</p>" + filterTags() + "</div>";
+}
+function emptyState(){
+  return '<div class="empty"><h3 style="margin-bottom:6px">No firms match those filters</h3>' +
+    '<p class="meta" style="margin-bottom:18px">Try widening the price range or removing a market filter.</p>' +
+    '<button class="btn btn-secondary" data-action="clear-filters">Clear all filters</button></div>';
+}
+
+/* =========================
+   VIEW — HOME
+   ========================= */
+function viewHome(){
+  var featured = sortFirms(FIRMS.slice()).slice(0, 4);
+  var deals = FIRMS.filter(hasLiveOffer).sort(function(a,b){ return b.discount - a.discount; }).slice(0, 4);
+  var priorities = [
+    ["price","Low price"],["drawdown","Low drawdown"],["split","High profit split"],["payout","Fast payouts"],["flexible","Flexible rules"]
+  ];
+
+  return '<section class="hero">' +
+      '<div class="wrap hero-inner">' +
+        '<p class="eyebrow" style="color:#7C9CC4; margin-bottom:16px">Independent prop firm comparison</p>' +
+        "<h1>Find the prop firm that fits your trading.</h1>" +
+        '<p class="hero-sub">Compare pricing, drawdown, profit splits, rules and current offers — all in one place.</p>' +
+        '<div class="hero-cta">' +
+          '<a class="btn btn-primary" href="#/matcher" data-nav="matcher">Find my prop firm ' + svg("arrowRight", 16) + "</a>" +
+          '<a class="btn btn-onnavy" href="#/compare" data-nav="compare">Compare firms</a>' +
+        "</div>" +
+        '<div class="trust-row">' +
+          '<span class="trust-item">' + svg("scale", 15) + "Compare rules, not marketing</span>" +
+          '<span class="trust-item">' + svg("shield", 15) + "Verified offers with check dates</span>" +
+          '<span class="trust-item">' + svg("compare", 15) + "Side-by-side comparisons</span>" +
+        "</div>" +
+      "</div>" +
+    "</section>" +
+
+    // ---- interactive matcher preview ----
+    '<div class="wrap matcher-preview"><div class="mp-card">' +
+      '<div class="mp-head"><div>' +
+        "<h2>Find your best match</h2>" +
+        '<p class="meta" style="margin-top:4px">What matters most to you? Pick one or more.</p>' +
+      "</div>" +
+      '<a class="btn btn-ghost btn-sm" href="#/matcher" data-nav="matcher">Full matcher ' + svg("arrowRight", 14) + "</a></div>" +
+      '<div class="chip-row" id="quickChips">' +
+        priorities.map(function(p){
+          var on = state.quick.priorities.indexOf(p[0]) > -1;
+          return '<button class="chip" data-action="quick-toggle" data-key="' + p[0] + '" aria-pressed="' + on + '">' +
+            '<span class="chip-tick">' + svg("checkSm", 14, 2.4) + "</span>" + p[1] + "</button>";
+        }).join("") +
+      "</div>" +
+      '<div class="mp-foot">' +
+        '<p class="micro">Demo scoring runs entirely in your browser.</p>' +
+        '<button class="btn btn-primary" data-action="quick-run"' + (state.quick.priorities.length ? "" : " disabled") + ">Show my matches</button>" +
+      "</div>" +
+      '<div id="quickResults">' + quickResultsHtml() + "</div>" +
+    "</div></div>" +
+
+    // ---- featured firms ----
+    '<section class="section"><div class="wrap">' +
+      '<div class="section-head"><div>' +
+        "<h2>Popular prop firms</h2>" +
+        '<p class="lede" style="margin-top:6px">Ranked by our balanced score across rules, pricing, payouts and rating.</p>' +
+      "</div>" +
+      '<a class="btn btn-secondary btn-sm" href="#/firms" data-nav="firms">All firms ' + svg("arrowRight", 14) + "</a></div>" +
+      '<div class="card-grid">' + featured.map(function(f){ return firmCard(f); }).join("") + "</div>" +
+    "</div></section>" +
+
+    // ---- deals ----
+    '<section class="section-sm" style="background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:56px 0"><div class="wrap">' +
+      '<div class="section-head"><div>' +
+        "<h2>Verified deals</h2>" +
+        '<p class="lede" style="margin-top:6px">Discount codes with the date each one was last checked.</p>' +
+      "</div>" +
+      '<a class="btn btn-secondary btn-sm" href="#/deals" data-nav="deals">All deals ' + svg("arrowRight", 14) + "</a></div>" +
+      '<div class="deal-grid">' + deals.map(dealCard).join("") + "</div>" +
+    "</div></section>" +
+
+    // ---- guides ----
+    '<section class="section"><div class="wrap">' +
+      '<div class="section-head"><div>' +
+        "<h2>Learn before you choose</h2>" +
+        '<p class="lede" style="margin-top:6px">Short explanations of the rules that decide whether an account survives.</p>' +
+      "</div>" +
+      '<a class="btn btn-secondary btn-sm" href="#/guides" data-nav="guides">All guides ' + svg("arrowRight", 14) + "</a></div>" +
+      '<div class="guide-grid">' + GUIDES.slice(0, 3).map(guideCard).join("") + "</div>" +
+    "</div></section>";
+}
+function quickResultsHtml(){
+  var q = state.quick;
+  if (q.loading) {
+    return '<div class="mp-results"><div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row" style="margin-bottom:0"></div></div>';
+  }
+  if (!q.results) return "";
+  var prefs = { priorities:q.priorities };
+  return '<div class="mp-results"><div class="match-list">' +
+    q.results.map(function(res){
+      var f = res.firm;
+      return '<div class="match-row">' + logo(f) +
+        "<div>" +
+          '<div class="row" style="gap:8px; flex-wrap:wrap"><a href="#/firm/' + f.slug + '" data-nav="firm" data-slug="' + f.slug + '" style="font-weight:600">' + esc(f.name) + "</a>" +
+          (hasLiveOffer(f) ? '<span class="badge badge-offer">' + f.discount + "% OFF</span>" : "") + "</div>" +
+          '<p class="match-why">' + esc(whySentence(res, prefs)) + "</p>" +
+        "</div>" +
+        '<div class="match-score"><div class="pct num">' + res.score + '%</div><div class="micro">match</div></div>' +
+      "</div>";
+    }).join("") +
+    "</div>" +
+    '<p class="micro" style="margin-top:12px">Scores are produced by the demo scoring logic from your selections. ' +
+    '<a href="#/matcher" data-nav="matcher" style="color:var(--accent); font-weight:500">Answer four questions</a> for a more precise result.</p></div>';
+}
+
+/* =========================
+   VIEW — FIRM DIRECTORY
+   ========================= */
+function viewFirms(){
+  var list = filteredFirms();
+  return '<div class="wrap"><div class="page-head">' +
+      "<h1>Prop firms</h1>" +
+      '<p class="lede">Compare firms by the rules that actually matter.</p>' +
+    "</div>" +
+    toolbar() + resultMeta(list) +
+    (list.length ? '<div class="card-grid" style="padding-bottom:56px">' + list.map(function(f){ return firmCard(f); }).join("") + "</div>"
+                 : '<div style="padding-bottom:56px">' + emptyState() + "</div>") +
+  "</div>";
+}
+
+/* =========================
+   VIEW — COMPARE (TABLE)
+   ========================= */
+function viewCompare(){
+  var list = filteredFirms();
+  var rows = list.map(function(f){
+    var sel = state.compare.indexOf(f.slug) > -1;
+    return '<tr class="' + (sel ? "selected" : "") + '">' +
+      '<td class="col-firm"><div class="cell-firm">' + logo(f) +
+        '<div><a class="name" href="#/firm/' + f.slug + '" data-nav="firm" data-slug="' + f.slug + '">' + esc(f.name) + "</a>" +
+        '<div class="micro">' + esc(f.markets.slice(0,2).join(", ")) + (f.markets.length > 2 ? " +" + (f.markets.length - 2) : "") + "</div></div></div></td>" +
+      "<td>" + ratingLine(f, false) + "</td>" +
+      '<td class="num-cell">' + money(f.startingPrice) + "</td>" +
+      '<td class="num-cell">' + f.profitSplit + "%</td>" +
+      '<td class="num-cell">' + f.maxDrawdown + '% <span class="micro">' + esc(f.drawdownType) + "</span></td>" +
+      "<td>" + esc(f.challengeType) + "</td>" +
+      "<td>" + esc(f.platforms.slice(0,2).join(", ")) + (f.platforms.length > 2 ? " +" + (f.platforms.length - 2) : "") + "</td>" +
+      "<td>" + offerBadgeCompact(f) + "</td>" +
+      '<td><button class="btn btn-secondary btn-sm" data-action="toggle-compare" data-slug="' + f.slug + '" aria-pressed="' + sel + '">' +
+        (sel ? svg("check", 14) + "Added" : "Compare") + "</button></td>" +
+    "</tr>";
+  }).join("");
+
+  return '<div class="wrap"><div class="page-head">' +
+      "<h1>Compare prop firms</h1>" +
+      '<p class="lede">Every firm on one row. Select two or three to open a full side-by-side.</p>' +
+    "</div>" +
+    toolbar() + resultMeta(list) +
+    (list.length ?
+      '<div class="table-wrap"><div class="table-scroll"><table class="ctable"><thead><tr>' +
+        '<th class="col-firm">Firm</th><th>Rating</th><th>Price</th>' +
+        "<th>Profit split" + tipBtn("profitSplit") + "</th>" +
+        "<th>Max drawdown" + tipBtn("maxDrawdown") + "</th>" +
+        "<th>Challenge" + tipBtn("challenge") + "</th>" +
+        "<th>Platform</th><th>Offer</th><th>Action</th>" +
+      "</tr></thead><tbody>" + rows + "</tbody></table></div></div>" +
+      '<p class="micro" style="margin:14px 0 56px">Prototype data — figures are illustrative and do not describe real firms. Scroll the table sideways on narrow screens.</p>'
+      : '<div style="padding-bottom:56px">' + emptyState() + "</div>") +
+  "</div>";
+}
+
+/* =========================
+   VIEW — DEALS
+   ========================= */
+function viewDeals(){
+  var live = FIRMS.filter(hasLiveOffer).sort(function(a,b){ return b.discount - a.discount; });
+  var expired = FIRMS.filter(function(f){ return f.discount > 0 && f.expired; });
+  return '<div class="wrap"><div class="page-head">' +
+      "<h1>Current prop firm deals</h1>" +
+      '<p class="lede">Verified offers and discount codes.</p>' +
+    "</div>" +
+    '<div style="padding:24px 0 8px" class="spread">' +
+      '<p class="meta num">' + live.length + " active offers</p>" +
+      '<span class="badge badge-verified">' + svg("check", 12, 2.4) + "All codes checked this week</span>" +
+    "</div>" +
+    '<div class="deal-grid">' + live.map(dealCard).join("") + "</div>" +
+    (expired.length ?
+      '<div style="margin-top:48px"><div class="section-head" style="margin-bottom:16px"><div>' +
+        '<h2 style="font-size:20px">Recently expired</h2>' +
+        '<p class="meta" style="margin-top:4px">Kept visible so you can see what a firm has offered before.</p>' +
+      "</div></div>" +
+      '<div class="deal-grid">' + expired.map(dealCard).join("") + "</div></div>" : "") +
+    '<p class="micro" style="margin:32px 0 56px; max-width:80ch">Demo offers. In production each code would carry an automated re-check date, and clicking through would pass a referral parameter to the firm. ' +
+    "We may earn a commission from purchases made through some links; this does not affect the ratings shown.</p>" +
+  "</div>";
+}
+
+/* =========================
+   VIEW — MATCHER
+   ========================= */
+var MATCH_QUESTIONS = [
+  {
+    key:"market", title:"What do you trade?", sub:"We will prioritise firms that cover your market.",
+    multi:false,
+    options:[
+      { v:"Forex", t:"Forex", d:"Major and minor currency pairs" },
+      { v:"Futures", t:"Futures", d:"Index, energy and rate futures" },
+      { v:"Crypto", t:"Crypto", d:"Spot and perpetual crypto pairs" },
+      { v:"Indices", t:"Indices", d:"Cash indices and index CFDs" }
+    ]
+  },
+  {
+    key:"challenge", title:"What challenge type do you prefer?", sub:"Fewer phases usually means tighter risk limits.",
+    multi:false,
+    options:[
+      { v:"1-Step", t:"One-step", d:"A single evaluation phase" },
+      { v:"2-Step", t:"Two-step", d:"Two phases, more room per phase" },
+      { v:"Instant", t:"Instant funding", d:"No evaluation, higher fee" },
+      { v:"any", t:"No preference", d:"Show me whatever fits best" }
+    ]
+  },
+  {
+    key:"priorities", title:"What matters most?", sub:"Pick up to three. These carry the most weight in your score.",
+    multi:true,
+    options:[
+      { v:"price", t:"Low price", d:"Lowest entry cost" },
+      { v:"drawdown", t:"Low drawdown risk", d:"More room before failure" },
+      { v:"split", t:"High profit split", d:"Keep more of what you make" },
+      { v:"payout", t:"Fast payouts", d:"Short withdrawal cycles" },
+      { v:"flexible", t:"Flexible rules", d:"News, weekends, no consistency rule" }
+    ]
+  },
+  {
+    key:"size", title:"What account size do you want?", sub:"We check the firm actually offers it.",
+    multi:false,
+    options:[
+      { v:25000, t:"$25K", d:"Starter allocation" },
+      { v:50000, t:"$50K", d:"Most common size" },
+      { v:100000, t:"$100K", d:"Standard professional size" },
+      { v:300000, t:"$300K+", d:"Large allocation" }
+    ]
+  }
+];
+function viewMatcher(){
+  var m = state.matcher;
+  if (m.done || m.loading) return matcherResultsView();
+
+  var q = MATCH_QUESTIONS[m.step];
+  var current = m[q.key];
+  var canNext = q.multi ? (current && current.length > 0) : (current !== null && current !== undefined);
+  var isLast = m.step === MATCH_QUESTIONS.length - 1;
+
+  return '<div class="wrap" style="padding-top:48px; padding-bottom:64px"><div class="matcher-shell">' +
+    '<div style="text-align:center; margin-bottom:28px">' +
+      '<p class="eyebrow">Match Me</p>' +
+      '<h1 style="font-size:clamp(26px,3.4vw,36px); margin-top:8px">Find your prop firm in four questions</h1>' +
+    "</div>" +
+    '<div class="progress"><span class="meta num">' + (m.step + 1) + " / " + MATCH_QUESTIONS.length + "</span>" +
+      '<div class="progress-track"><div class="progress-fill" style="width:' + ((m.step) / MATCH_QUESTIONS.length * 100) + '%"></div></div>' +
+    "</div>" +
+    '<div class="q-card">' +
+      "<h2>" + esc(q.title) + "</h2>" +
+      '<p class="lede">' + esc(q.sub) + "</p>" +
+      '<div class="q-options">' +
+        q.options.map(function(o){
+          var on = q.multi ? current.indexOf(o.v) > -1 : current === o.v;
+          return '<button class="opt" data-action="matcher-pick" data-key="' + q.key + '" data-value="' + o.v + '" aria-pressed="' + on + '">' +
+            '<span class="opt-mark">' + svg("checkSm", 12, 3) + "</span>" +
+            '<span><span class="opt-title">' + esc(o.t) + '</span><span class="opt-desc" style="display:block">' + esc(o.d) + "</span></span>" +
+          "</button>";
+        }).join("") +
+      "</div>" +
+      '<div class="q-foot">' +
+        (m.step > 0 ? '<button class="btn btn-ghost" data-action="matcher-back">' + svg("arrowLeft", 15) + "Back</button>" : '<span class="micro">No account needed</span>') +
+        '<button class="btn btn-primary" data-action="matcher-next"' + (canNext ? "" : " disabled") + ">" +
+          (isLast ? "Show my matches" : "Continue") + svg("arrowRight", 15) + "</button>" +
+      "</div>" +
+    "</div>" +
+    '<p class="micro" style="text-align:center; margin-top:20px">Scoring runs in your browser against demo data. Nothing is submitted anywhere.</p>' +
+  "</div></div>";
+}
+function matcherResultsView(){
+  var m = state.matcher;
+  var head = '<div class="wrap" style="padding-top:48px; padding-bottom:64px"><div class="matcher-shell">' +
+    '<div class="spread" style="margin-bottom:24px"><div>' +
+      '<p class="eyebrow">Your matches</p>' +
+      '<h1 style="font-size:clamp(24px,3vw,32px); margin-top:6px">Based on what you told us</h1>' +
+    "</div>" +
+    '<button class="btn btn-secondary btn-sm" data-action="matcher-restart">Start over</button></div>';
+
+  if (m.loading) {
+    return head + '<div class="skel" style="height:132px; margin-bottom:12px"></div>' +
+      '<div class="skel" style="height:132px; margin-bottom:12px"></div>' +
+      '<div class="skel" style="height:132px"></div></div></div>';
+  }
+
+  var prefs = { market:m.market, challenge:m.challenge, priorities:m.priorities, size:m.size };
+  var summary = [
+    m.market ? m.market : null,
+    m.challenge && m.challenge !== "any" ? m.challenge : "Any challenge type",
+    m.size ? shortMoney(m.size) + " account" : null
+  ].filter(Boolean).join(" · ");
+
+  return head +
+    '<div class="row" style="flex-wrap:wrap; gap:6px; margin-bottom:20px"><span class="badge badge-muted">' + esc(summary) + "</span>" +
+      m.priorities.map(function(p){
+        var labels = { price:"Low price", drawdown:"Low drawdown", split:"High split", payout:"Fast payouts", flexible:"Flexible rules" };
+        return '<span class="badge badge-offer">' + labels[p] + "</span>";
+      }).join("") +
+    "</div>" +
+    m.results.map(function(res, i){
+      var f = res.firm;
+      return '<article class="result-card' + (i === 0 ? " top" : "") + '">' +
+        '<div class="rc-head">' +
+          '<div class="score-ring" style="--pct:' + res.score + '" role="img" aria-label="' + res.score + " percent match" + '"><span class="num">' + res.score + "%</span></div>" +
+          '<div class="grow">' +
+            '<div class="row" style="gap:8px; flex-wrap:wrap">' +
+              '<a href="#/firm/' + f.slug + '" data-nav="firm" data-slug="' + f.slug + '"><h3>' + esc(f.name) + "</h3></a>" +
+              (i === 0 ? '<span class="badge badge-offer">Best match</span>' : "") +
+              (hasLiveOffer(f) ? '<span class="badge badge-verified">' + f.discount + "% OFF · " + esc(f.discountCode) + "</span>" : "") +
+            "</div>" +
+            '<div style="margin-top:4px">' + ratingLine(f, true) + "</div>" +
+            '<p class="meta" style="margin-top:8px">' + esc(whySentence(res, prefs)) + "</p>" +
+            '<div class="rc-reasons">' + reasonsFor(res, prefs).map(function(r){
+              return '<span class="reason">' + svg("checkSm", 12, 2.6) + esc(r) + "</span>";
+            }).join("") + "</div>" +
+          "</div>" +
+        "</div>" +
+        '<div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap">' +
+          '<a class="btn btn-primary btn-sm" href="#/firm/' + f.slug + '" data-nav="firm" data-slug="' + f.slug + '">View firm</a>' +
+          '<button class="btn btn-secondary btn-sm" data-action="toggle-compare" data-slug="' + f.slug + '">Add to comparison</button>' +
+          (hasLiveOffer(f) ? '<button class="btn btn-secondary btn-sm btn-copy" data-action="copy" data-code="' + esc(f.discountCode) + '" data-firm="' + esc(f.name) + '">' + svg("copy", 14) + "Copy code</button>" : "") +
+        "</div>" +
+      "</article>";
+    }).join("") +
+    '<p class="micro" style="margin-top:20px">Match percentages come from the demo scoring model: market 30, challenge type 20, price 15, drawdown 15, profit split 10, payout 10 — with your priorities weighted double. Demo data only.</p>' +
+  "</div></div>";
+}
+
+/* =========================
+   VIEW — GUIDES
+   ========================= */
+function viewGuides(){
+  return '<div class="wrap"><div class="page-head">' +
+      "<h1>Guides</h1>" +
+      '<p class="lede">Learn before you choose — short explanations of how prop firm programs actually work.</p>' +
+    "</div>" +
+    '<div class="guide-grid" style="padding:32px 0 56px">' + GUIDES.map(guideCard).join("") + "</div>" +
+  "</div>";
+}
+
+/* =========================
+   VIEW — FIRM PROFILE
+   ========================= */
+function viewFirm(slug){
+  var f = firmBySlug(slug);
+  if (!f) return '<div class="wrap" style="padding:80px 0"><div class="empty"><h3>Firm not found</h3><p class="meta" style="margin:8px 0 18px">That demo firm does not exist.</p><a class="btn btn-primary" href="#/firms" data-nav="firms">Back to all firms</a></div></div>';
+
+  var sel = state.compare.indexOf(f.slug) > -1;
+  var live = hasLiveOffer(f);
+  var progs = programsFor(f);
+
+  var statCells = [
+    ["Starting price", money(f.startingPrice), null],
+    ["Maximum funding", shortMoney(f.maxFunding), "maxFunding"],
+    ["Profit split", f.profitSplit + "%", "profitSplit"],
+    ["Max drawdown", f.maxDrawdown + "%", "maxDrawdown"],
+    ["Payout", f.payout, "payout"],
+    ["Challenge", f.challengeType, "challenge"]
+  ].map(function(c){
+    return '<div class="stat-cell"><div class="stat-val num">' + esc(c[1]) + "</div>" +
+      '<div class="stat-key">' + esc(c[0]) + (c[2] ? tipBtn(c[2]) : "") + "</div></div>";
+  }).join("");
+
+  var ruleRows = [
+    ["Daily drawdown", f.dailyDrawdown + "%", "dailyDrawdown"],
+    ["Maximum drawdown", f.maxDrawdown + "% (" + f.drawdownType.toLowerCase() + ")", f.drawdownType === "Trailing" ? "trailing" : "maxDrawdown"],
+    ["Minimum trading days", f.rules.minDays === 0 ? "None" : f.rules.minDays, null],
+    ["News trading", f.rules.news, null],
+    ["Weekend holding", f.rules.weekend, null],
+    ["Expert advisors (EA)", f.rules.ea, null],
+    ["Consistency rule", f.rules.consistency, "consistency"],
+    ["Time limit", f.rules.timeLimit, null]
+  ].map(function(r){
+    var neutral = ["Allowed","None","Unlimited"].indexOf(r[1]) > -1;
+    return '<div class="rule-row"><span class="k">' + esc(r[0]) + (r[2] ? tipBtn(r[2]) : "") + "</span>" +
+      '<span class="v num" style="' + (neutral ? "color:var(--pos)" : "") + '">' + esc(r[1]) + "</span></div>";
+  }).join("");
+
+  return '<div class="wrap" style="padding-top:24px; padding-bottom:64px">' +
+    '<nav class="breadcrumb" aria-label="Breadcrumb">' +
+      '<a href="#/firms" data-nav="firms">Prop firms</a>' + svg("chevronRight", 13) + "<span>" + esc(f.name) + "</span></nav>" +
+
+    '<div class="profile-grid">' +
+      "<div>" +
+        // header
+        '<div class="profile-head" style="margin-bottom:24px">' + logo(f, true) +
+          '<div class="grow" style="min-width:220px">' +
+            '<h1 style="font-size:clamp(24px,3vw,34px)">' + esc(f.name) + "</h1>" +
+            '<div class="row" style="gap:10px; margin-top:8px; flex-wrap:wrap">' + ratingLine(f, true) +
+              '<span class="badge badge-verified">' + svg("shield", 12, 2) + "Rules checked " + esc(f.verified) + "</span>" +
+            "</div>" +
+            '<p class="lede" style="margin-top:14px; max-width:60ch">' + esc(f.tagline) + "</p>" +
+            '<div class="row" style="gap:6px; margin-top:14px; flex-wrap:wrap">' +
+              f.markets.map(function(m){ return '<span class="badge badge-muted">' + esc(m) + "</span>"; }).join("") +
+              f.platforms.map(function(p){ return '<span class="badge badge-muted">' + esc(p) + "</span>"; }).join("") +
+            "</div>" +
+          "</div>" +
+        "</div>" +
+
+        // key stats
+        '<h2 style="font-size:19px; margin-bottom:12px">Key statistics</h2>' +
+        '<div class="stat-grid" style="margin-bottom:32px">' + statCells + "</div>" +
+
+        // programs
+        '<h2 style="font-size:19px; margin-bottom:12px">Challenge programs</h2>' +
+        '<div class="panel" style="margin-bottom:32px"><div style="overflow-x:auto"><table class="prog-table"><thead><tr>' +
+          "<th>Account size</th><th>Price</th><th>Profit target</th><th>Max drawdown</th><th>Profit split</th>" +
+        "</tr></thead><tbody>" +
+          progs.map(function(p){
+            return "<tr><td>" + money(p.size) + "</td><td>" + money(p.price) + "</td><td>" + esc(p.target) + "</td><td>" + f.maxDrawdown + "%</td><td>" + f.profitSplit + "%</td></tr>";
+          }).join("") +
+        "</tbody></table></div></div>" +
+
+        // rules
+        '<h2 style="font-size:19px; margin-bottom:12px">Trading rules</h2>' +
+        '<div class="panel" style="margin-bottom:32px">' + ruleRows + "</div>" +
+
+        // pros / considerations
+        '<h2 style="font-size:19px; margin-bottom:12px">Pros and considerations</h2>' +
+        '<div class="two-col" style="margin-bottom:32px">' +
+          '<div class="panel" style="padding:18px 20px"><h4 style="margin-bottom:8px">Pros</h4><ul class="pc-list pc-pro">' +
+            f.pros.map(function(p){ return "<li>" + svg("check", 15, 2.2) + "<span>" + esc(p) + "</span></li>"; }).join("") +
+          "</ul></div>" +
+          '<div class="panel" style="padding:18px 20px"><h4 style="margin-bottom:8px">Considerations</h4><ul class="pc-list pc-con">' +
+            f.considerations.map(function(p){ return "<li>" + svg("alert", 15, 2) + "<span>" + esc(p) + "</span></li>"; }).join("") +
+          "</ul></div>" +
+        "</div>" +
+
+        // reviews
+        '<div class="spread" style="margin-bottom:12px"><h2 style="font-size:19px">Reviews</h2>' +
+          '<span class="badge badge-demo">Demo content</span></div>' +
+        '<div class="panel">' +
+          f.reviewList.map(function(r){
+            return '<div class="review">' +
+              '<div class="spread"><span class="rating-line">' + stars(r.stars) + '<span class="rating-val num">' + r.stars.toFixed(1) + "</span></span>" +
+              '<span class="micro">' + esc(r.tag) + "</span></div>" +
+              '<p class="review-quote">' + esc(r.quote) + "</p>" +
+              '<span class="badge badge-muted">' + svg("check", 11, 2.6) + "Verified purchase · demo</span>" +
+            "</div>";
+          }).join("") +
+        "</div>" +
+        '<p class="micro" style="margin-top:12px">Reviews shown in this prototype are illustrative sample text, not statements by real customers.</p>' +
+      "</div>" +
+
+      // ---- sticky offer card ----
+      "<aside>" +
+        '<div class="offer-card">' +
+          (live
+            ? '<div class="spread" style="margin-bottom:2px"><span class="badge badge-offer">Current offer</span>' +
+              '<span class="badge badge-verified">' + svg("check", 12, 2.4) + "Verified</span></div>" +
+              '<div class="amount num">' + f.discount + "% OFF</div>" +
+              '<p class="meta" style="margin-bottom:16px">On all evaluation programs. Last checked ' + esc(f.verified) + ".</p>" +
+              '<div class="deal-code"><span class="code-chip num grow">' + esc(f.discountCode) + "</span></div>" +
+              '<button class="btn btn-secondary btn-block btn-copy" data-action="copy" data-code="' + esc(f.discountCode) + '" data-firm="' + esc(f.name) + '" style="margin-bottom:8px">' + svg("copy", 15) + "Copy code</button>"
+            : '<span class="badge badge-muted">No current offer</span>' +
+              '<div class="amount" style="font-size:19px; margin-top:10px">Standard pricing</div>' +
+              '<p class="meta" style="margin-bottom:16px">From ' + money(f.startingPrice) + ". Checked " + esc(f.verified) + ".</p>") +
+          '<button class="btn btn-primary btn-block" data-action="affiliate" data-slug="' + f.slug + '">Visit firm ' + svg("external", 15) + "</button>" +
+          '<button class="btn btn-ghost btn-block" data-action="toggle-compare" data-slug="' + f.slug + '" style="margin-top:8px" aria-pressed="' + sel + '">' +
+            (sel ? svg("check", 15) + "In comparison" : svg("compare", 15) + "Add to comparison") + "</button>" +
+          '<p class="disclosure-inline">We may earn a commission from purchases made through some links. This does not determine our ratings.</p>' +
+        "</div>" +
+        '<div class="panel" style="padding:18px 20px; margin-top:16px">' +
+          '<h4 style="margin-bottom:10px">At a glance</h4>' +
+          '<div class="stack-8">' +
+            [["Challenge", f.challengeType],["Drawdown model", f.drawdownType],["Payout cycle", f.payout],["Platforms", f.platforms.join(", ")],["Markets", f.markets.join(", ")]].map(function(r){
+              return '<div class="spread" style="font-size:13.5px"><span class="meta">' + esc(r[0]) + '</span><span style="font-weight:500; text-align:right">' + esc(r[1]) + "</span></div>";
+            }).join("") +
+          "</div>" +
+        "</div>" +
+      "</aside>" +
+    "</div>" +
+  "</div>";
+}
+
+/* =========================
+   SIDE-BY-SIDE COMPARISON
+   ========================= */
+function sbsHtml(){
+  var firms = state.compare.map(firmBySlug).filter(Boolean);
+  if (firms.length < 2) return '<p class="meta">Select at least two firms to compare.</p>';
+
+  var rows = [
+    { label:"Rating", get:function(f){ return f.rating.toFixed(1); }, best:"max", raw:function(f){ return f.rating; } },
+    { label:"Reviews", get:function(f){ return f.reviews + ""; }, best:null },
+    { label:"Starting price", get:function(f){ return money(f.startingPrice); }, best:"min", raw:function(f){ return f.startingPrice; } },
+    { label:"Maximum funding", get:function(f){ return shortMoney(f.maxFunding); }, best:"max", raw:function(f){ return f.maxFunding; }, tip:"maxFunding" },
+    { label:"Profit split", get:function(f){ return f.profitSplit + "%"; }, best:"max", raw:function(f){ return f.profitSplit; }, tip:"profitSplit" },
+    { label:"Daily drawdown", get:function(f){ return f.dailyDrawdown + "%"; }, best:"max", raw:function(f){ return f.dailyDrawdown; }, tip:"dailyDrawdown" },
+    { label:"Max drawdown", get:function(f){ return f.maxDrawdown + "%"; }, best:"max", raw:function(f){ return f.maxDrawdown; }, tip:"maxDrawdown" },
+    { label:"Drawdown model", get:function(f){ return f.drawdownType; }, best:null },
+    { label:"Challenge", get:function(f){ return f.challengeType; }, best:null, tip:"challenge" },
+    { label:"Platforms", get:function(f){ return f.platforms.join(", "); }, best:null },
+    { label:"Markets", get:function(f){ return f.markets.join(", "); }, best:null },
+    { label:"Payout", get:function(f){ return f.payout; }, best:"min", raw:function(f){ return f.payoutDays; }, tip:"payout" },
+    { label:"Min trading days", get:function(f){ return f.rules.minDays === 0 ? "None" : f.rules.minDays + ""; }, best:"min", raw:function(f){ return f.rules.minDays; } },
+    { label:"Consistency rule", get:function(f){ return f.rules.consistency; }, best:null, tip:"consistency" },
+    { label:"News trading", get:function(f){ return f.rules.news; }, best:null },
+    { label:"Weekend holding", get:function(f){ return f.rules.weekend; }, best:null },
+    { label:"Current offer", get:function(f){ return hasLiveOffer(f) ? f.discount + "% OFF · " + f.discountCode : (f.discount ? "Expired" : "None"); }, best:null }
+  ];
+
+  var head = '<thead><tr><th class="row-label"></th>' + firms.map(function(f){
+    return '<th><div class="sbs-head-firm">' + logo(f) +
+      '<div><a href="#/firm/' + f.slug + '" data-nav="firm" data-slug="' + f.slug + '" style="font-weight:600; font-size:14.5px">' + esc(f.name) + "</a>" +
+      '<div style="margin-top:2px">' + ratingLine(f, false) + "</div></div>" +
+      '<button class="btn btn-secondary btn-sm" data-action="affiliate" data-slug="' + f.slug + '">Visit firm</button>' +
+      "</div></th>";
+  }).join("") + "</tr></thead>";
+
+  var body = "<tbody>" + rows.map(function(r){
+    var bestIdx = -1;
+    if (r.best && r.raw) {
+      var vals = firms.map(r.raw);
+      var target = r.best === "max" ? Math.max.apply(null, vals) : Math.min.apply(null, vals);
+      var ties = vals.filter(function(v){ return v === target; }).length;
+      if (ties === 1) bestIdx = vals.indexOf(target);
+    }
+    return '<tr><td class="row-label">' + esc(r.label) + (r.tip ? tipBtn(r.tip) : "") + "</td>" +
+      firms.map(function(f, i){
+        return '<td class="val' + (i === bestIdx ? " best" : "") + '">' + esc(r.get(f)) +
+          (i === bestIdx ? '<span class="best-mark">' + svg("checkSm", 11, 3) + "Best</span>" : "") + "</td>";
+      }).join("") + "</tr>";
+  }).join("") + "</tbody>";
+
+  return '<div class="sbs-scroll"><table class="sbs">' + head + body + "</table></div>" +
+    '<p class="micro" style="padding:16px 24px 4px">"Best" marks the strongest single value in each row across the firms you selected — a wider drawdown allowance counts as more room, not more risk. Demo data.</p>';
+}
+
+/* =========================
+   ROUTER
+   ========================= */
+var VIEWS = {
+  home:viewHome, firms:viewFirms, compare:viewCompare, deals:viewDeals,
+  matcher:viewMatcher, guides:viewGuides, firm:function(){ return viewFirm(state.slug); }
+};
+function parseHash(){
+  var h = (location.hash || "#/").replace(/^#\/?/, "");
+  var parts = h.split("/").filter(Boolean);
+  if (!parts.length) return { view:"home", slug:null };
+  if (parts[0] === "firm" && parts[1]) return { view:"firm", slug:parts[1] };
+  if (VIEWS[parts[0]]) return { view:parts[0], slug:null };
+  return { view:"home", slug:null };
+}
+function render(scrollTop){
+  var main = document.getElementById("main");
+  var fn = VIEWS[state.view] || viewHome;
+  main.innerHTML = '<div class="view-enter">' + fn() + "</div>";
+  document.querySelectorAll(".nav-link").forEach(function(a){
+    var nav = a.getAttribute("data-nav");
+    var isActive = nav === state.view || (state.view === "firm" && nav === "firms");
+    a.classList.toggle("active", isActive);
+    if (isActive) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  });
+  renderCompareBar();
+  if (scrollTop !== false) window.scrollTo(0, 0);
+}
+function route(){
+  var r = parseHash();
+  var changedView = r.view !== state.view || r.slug !== state.slug;
+  state.view = r.view;
+  state.slug = r.slug;
+  closeMenu();
+  if (state.view === "firm" && r.slug) {
+    var f = firmBySlug(r.slug);
+    if (f) track("firm_view", { firm:f.name });
+  }
+  if (state.view === "matcher" && changedView && !state.matcher.done) track("matcher_started", {});
+  if (state.view === "deals" && changedView) track("offer_view", { surface:"deals_page" });
+  render();
+}
+function go(path){
+  if (location.hash === path) { render(); return; }
+  location.hash = path;
+}
+
+/* =========================
+   COMPARE TRAY
+   ========================= */
+function renderCompareBar(){
+  var bar = document.getElementById("compareBar");
+  var chips = document.getElementById("cbChips");
+  var count = document.getElementById("cbCount");
+  var btn = document.getElementById("cbCompare");
+  var firms = state.compare.map(firmBySlug).filter(Boolean);
+
+  count.textContent = firms.length + (firms.length === 1 ? " firm selected" : " firms selected");
+  chips.innerHTML = firms.map(function(f){
+    return '<span class="cb-chip">' + esc(f.name) +
+      '<button data-action="toggle-compare" data-slug="' + f.slug + '" aria-label="Remove ' + esc(f.name) + ' from comparison">' + svg("close", 12, 2.4) + "</button></span>";
+  }).join("");
+  btn.disabled = firms.length < 2;
+  btn.textContent = firms.length < 2 ? "Select 2+" : "Compare";
+  bar.classList.toggle("show", firms.length > 0);
+  document.body.classList.toggle("has-bar", firms.length > 0);
+  document.body.style.paddingBottom = firms.length > 0 ? "76px" : "";
+}
+function toggleCompare(slug){
+  var f = firmBySlug(slug);
+  if (!f) return;
+  var i = state.compare.indexOf(slug);
+  if (i > -1) {
+    state.compare.splice(i, 1);
+  } else {
+    if (state.compare.length >= 3) { toast("You can compare up to three firms at once.", "alert"); return; }
+    state.compare.push(slug);
+    track("comparison_started", { firm:f.name, selected:state.compare.length });
+  }
+  saveCompare();
+  render(false);
+}
+
+/* =========================
+   OVERLAYS / FOCUS MANAGEMENT
+   ========================= */
+var openOverlay = null;
+var lastFocus = null;
+function showOverlay(id){
+  var el = document.getElementById(id);
+  if (!el) return;
+  lastFocus = document.activeElement;
+  el.hidden = false;
+  // force reflow so the transition runs
+  void el.offsetWidth;
+  el.classList.add("open");
+  openOverlay = el;
+  document.body.classList.add("no-scroll");
+  var focusable = el.querySelector("input, button, [href], select");
+  if (focusable) focusable.focus();
+}
+function closeOverlay(){
+  if (!openOverlay) return;
+  var el = openOverlay;
+  el.classList.remove("open");
+  openOverlay = null;
+  document.body.classList.remove("no-scroll");
+  window.setTimeout(function(){ if (!el.classList.contains("open")) el.hidden = true; }, 220);
+  if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+}
+function trapFocus(e){
+  if (!openOverlay || e.key !== "Tab") return;
+  var nodes = openOverlay.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, [tabindex]:not([tabindex="-1"])');
+  var list = Array.prototype.filter.call(nodes, function(n){ return n.offsetParent !== null; });
+  if (!list.length) return;
+  var first = list[0], last = list[list.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+function openModal(eyebrow, title, bodyHtml, wide){
+  document.getElementById("modalEyebrow").textContent = eyebrow;
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalBody").innerHTML = bodyHtml;
+  document.getElementById("modalEl").classList.toggle("modal-wide", !!wide);
+  document.getElementById("modalBody").classList.toggle("flush", !!wide);
+  showOverlay("modalOverlay");
+}
+
+/* =========================
+   TOASTS
+   ========================= */
+function toast(message, kind){
+  var wrap = document.getElementById("toastWrap");
+  var el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = svg(kind === "alert" ? "alert" : "check", 16, 2.2) + "<span>" + esc(message) + "</span>";
+  wrap.appendChild(el);
+  window.setTimeout(function(){
+    el.classList.add("leaving");
+    window.setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 200);
+  }, 2600);
+}
+
+/* =========================
+   CLIPBOARD
+   ========================= */
+function copyText(text){
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).catch(function(){ return legacyCopy(text); });
+  }
+  return legacyCopy(text);
+}
+function legacyCopy(text){
+  return new Promise(function(resolve, reject){
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    ok ? resolve() : reject();
+  });
+}
+function handleCopy(btn){
+  var code = btn.getAttribute("data-code");
+  var firm = btn.getAttribute("data-firm") || "";
+  var original = btn.innerHTML;
+  copyText(code).then(function(){
+    btn.classList.add("copied");
+    btn.innerHTML = svg("check", 14, 2.4) + "Copied";
+    toast("Code " + code + " copied to your clipboard.");
+  }).catch(function(){
+    toast("Could not access the clipboard. Code: " + code, "alert");
+  });
+  track("discount_copied", { firm:firm, code:code });
+  window.setTimeout(function(){
+    if (document.contains(btn)) { btn.classList.remove("copied"); btn.innerHTML = original; }
+  }, 1800);
+}
+
+/* =========================
+   FILTER DRAWER
+   ========================= */
+function renderFilterBody(){
+  var f = state.filters;
+  function group(title, kind, values){
+    return '<div class="filter-group"><h4>' + title + "</h4>" +
+      values.map(function(v){
+        var on = f[kind].indexOf(v) > -1;
+        return '<label class="check"><input type="checkbox" data-filter="' + kind + '" value="' + esc(v) + '"' + (on ? " checked" : "") + ">" +
+          '<span class="box">' + svg("checkSm", 12, 3) + "</span><span>" + esc(v) + "</span></label>";
+      }).join("") + "</div>";
+  }
+  var html =
+    group("Market", "markets", ALL_MARKETS) +
+    group("Challenge type", "challenges", ALL_CHALLENGES) +
+    '<div class="filter-group"><div class="range-head"><h4>Maximum entry price</h4><span class="meta num">' +
+      (f.maxPrice >= PRICE_MAX ? "Any" : "Up to " + money(f.maxPrice)) + "</span></div>" +
+      '<input type="range" id="priceRange" min="25" max="' + PRICE_MAX + '" step="5" value="' + f.maxPrice + '" aria-label="Maximum entry price">' +
+      '<div class="spread micro"><span>$25</span><span>Any</span></div></div>' +
+    '<div class="filter-group"><div class="range-head"><h4>Minimum profit split' + tipBtn("profitSplit") + "</h4><span class=\"meta num\">" +
+      (f.minSplit === 0 ? "Any" : f.minSplit + "%+") + "</span></div>" +
+      '<input type="range" id="splitRange" min="0" max="95" step="5" value="' + f.minSplit + '" aria-label="Minimum profit split">' +
+      '<div class="spread micro"><span>Any</span><span>95%</span></div></div>' +
+    '<div class="filter-group"><div class="range-head"><h4>Minimum max drawdown' + tipBtn("maxDrawdown") + "</h4><span class=\"meta num\">" +
+      (f.minDrawdown === 0 ? "Any" : f.minDrawdown + "%+") + "</span></div>" +
+      '<input type="range" id="drawRange" min="0" max="12" step="1" value="' + f.minDrawdown + '" aria-label="Minimum maximum drawdown">' +
+      '<div class="spread micro"><span>Any</span><span>12% — more room</span></div></div>' +
+    group("Platform", "platforms", ALL_PLATFORMS) +
+    '<div class="filter-group" style="border-bottom:0"><h4>Offers</h4>' +
+      '<label class="check"><input type="checkbox" data-filter="hasDiscount"' + (f.hasDiscount ? " checked" : "") + ">" +
+      '<span class="box">' + svg("checkSm", 12, 3) + "</span><span>Has an active discount</span></label></div>";
+  document.getElementById("filterBody").innerHTML = html;
+  document.getElementById("filterApply").textContent = "Show " + filteredFirms().length + " firms";
+}
+function clearFilters(){
+  state.filters = { markets:[], challenges:[], platforms:[], maxPrice:PRICE_MAX, minSplit:0, minDrawdown:0, hasDiscount:false };
+  renderFilterBody();
+  render(false);
+}
+
+/* =========================
+   SEARCH
+   ========================= */
+function renderSearch(q){
+  var box = document.getElementById("searchResults");
+  var query = (q || "").trim();
+  if (!query) {
+    box.innerHTML = '<p class="sr-group-title eyebrow">Suggested</p>' +
+      ["one step","instant funding","crypto","low drawdown","payouts"].map(function(s){
+        return '<button class="sr-item" data-action="search-suggest" data-q="' + s + '">' + svg("search", 15) +
+          "<span>" + s + '</span><span class="sr-meta">Try a search</span></button>';
+      }).join("");
+    return;
+  }
+  var firms = FIRMS.filter(function(f){ return matchesQuery(f, query); }).slice(0, 6);
+  var guides = GUIDES.filter(function(g){
+    return (g.title + " " + g.excerpt).toLowerCase().indexOf(query.toLowerCase()) > -1
+      || query.toLowerCase().replace(/[-\s]+/g," ").indexOf("step") > -1 && g.id === "one-vs-two-step";
+  }).slice(0, 4);
+
+  var html = "";
+  if (firms.length) {
+    html += '<p class="sr-group-title eyebrow">Firms</p>' + firms.map(function(f){
+      return '<button class="sr-item" data-action="search-firm" data-slug="' + f.slug + '">' + logo(f) +
+        "<span><span style=\"font-weight:500; display:block\">" + esc(f.name) + '</span><span class="micro">' + esc(f.challengeType) + " · " + esc(f.markets.join(", ")) + "</span></span>" +
+        '<span class="sr-meta num">' + money(f.startingPrice) + " · " + f.rating.toFixed(1) + "★</span></button>";
+    }).join("");
+  }
+  if (guides.length) {
+    html += '<p class="sr-group-title eyebrow">Guides</p>' + guides.map(function(g){
+      return '<button class="sr-item" data-action="search-guide" data-guide="' + g.id + '">' +
+        '<span class="guide-icon" style="width:28px; height:28px">' + svg(g.icon, 15) + "</span>" +
+        "<span>" + esc(g.title) + '</span><span class="sr-meta">' + esc(g.read) + "</span></button>";
+    }).join("");
+  }
+  if (!html) {
+    html = '<div style="padding:28px 16px; text-align:center"><p class="meta">No results for "' + esc(query) + '"</p>' +
+      '<p class="micro" style="margin-top:6px">Try a firm name, a market like "futures", or "one step".</p></div>';
+  }
+  box.innerHTML = html;
+}
+
+/* =========================
+   GUIDE MODAL
+   ========================= */
+function openGuide(id){
+  var g = null;
+  for (var i=0;i<GUIDES.length;i++) if (GUIDES[i].id === id) g = GUIDES[i];
+  if (!g) return;
+  var body = '<article class="article">' +
+    '<p class="meta" style="margin-bottom:18px">' + esc(g.read) + " · Prototype article</p>" +
+    g.body.map(function(b){
+      var out = "";
+      if (b.h) out += "<h3>" + esc(b.h) + "</h3>";
+      if (b.p) out += "<p>" + esc(b.p) + "</p>";
+      if (b.list) out += '<ul class="bullets">' + b.list.map(function(li){ return "<li>" + esc(li) + "</li>"; }).join("") + "</ul>";
+      return out;
+    }).join("") +
+    '<div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--line); display:flex; gap:8px; flex-wrap:wrap">' +
+      '<a class="btn btn-primary btn-sm" href="#/compare" data-nav="compare" data-action="close-and-go">Compare firms on these rules</a>' +
+      '<a class="btn btn-secondary btn-sm" href="#/matcher" data-nav="matcher" data-action="close-and-go">Run the matcher</a>' +
+    "</div></article>";
+  openModal("Guide", g.title, body);
+  track("guide_opened", { guide:g.title });
+}
+
+/* =========================
+   EVENT WIRING
+   ========================= */
+function closeMenu(){
+  var menu = document.getElementById("mobileMenu");
+  var btn = document.querySelector(".menu-btn");
+  menu.classList.remove("open");
+  btn.setAttribute("aria-expanded", "false");
+  window.setTimeout(function(){ if (!menu.classList.contains("open")) menu.hidden = true; }, 200);
+}
+function toggleMenu(){
+  var menu = document.getElementById("mobileMenu");
+  var btn = document.querySelector(".menu-btn");
+  var isOpen = menu.classList.contains("open");
+  if (isOpen) { closeMenu(); return; }
+  menu.hidden = false;
+  void menu.offsetWidth;
+  menu.classList.add("open");
+  btn.setAttribute("aria-expanded", "true");
+}
+
+document.addEventListener("click", function(e){
+  // tooltips
+  var tipTrigger = e.target.closest ? e.target.closest("[data-tip]") : null;
+  if (tipTrigger) {
+    e.preventDefault();
+    // On touch devices tapping toggles; on hover devices the pointer already opened it.
+    showTip(tipTrigger, !window.matchMedia("(hover:hover)").matches);
+    return;
+  }
+  hideTip();
+
+  var el = e.target.closest ? e.target.closest("[data-action]") : null;
+
+  // plain navigation links
+  var link = e.target.closest ? e.target.closest("a[data-nav]") : null;
+  if (link && !el) { closeMenu(); return; }
+
+  if (!el) {
+    // click outside overlay panel closes it
+    if (openOverlay && e.target === openOverlay) closeOverlay();
+    return;
+  }
+  var action = el.getAttribute("data-action");
+
+  switch (action) {
+    case "toggle-menu": toggleMenu(); break;
+
+    case "open-search":
+      closeMenu();
+      showOverlay("searchOverlay");
+      var si = document.getElementById("searchInput");
+      si.value = "";
+      renderSearch("");
+      break;
+
+    case "close-overlay": closeOverlay(); break;
+
+    case "close-and-go": closeOverlay(); closeMenu(); break;
+
+    case "open-filters":
+      renderFilterBody();
+      showOverlay("filterOverlay");
+      break;
+
+    case "clear-filters": clearFilters(); break;
+
+    case "remove-filter": {
+      var kind = el.getAttribute("data-kind"), value = el.getAttribute("data-value");
+      if (kind === "maxPrice") state.filters.maxPrice = PRICE_MAX;
+      else if (kind === "minSplit") state.filters.minSplit = 0;
+      else if (kind === "minDrawdown") state.filters.minDrawdown = 0;
+      else if (kind === "hasDiscount") state.filters.hasDiscount = false;
+      else {
+        var arr = state.filters[kind];
+        var idx = arr.indexOf(value);
+        if (idx > -1) arr.splice(idx, 1);
+      }
+      render(false);
+      break;
+    }
+
+    case "toggle-compare": toggleCompare(el.getAttribute("data-slug")); break;
+
+    case "clear-compare":
+      state.compare = [];
+      saveCompare();
+      render(false);
+      break;
+
+    case "open-sbs": {
+      var names = state.compare.map(function(s){ var f = firmBySlug(s); return f ? f.name : ""; });
+      openModal("Side by side", "Comparing " + state.compare.length + " firms", sbsHtml(), true);
+      track("comparison_completed", { firms:names });
+      break;
+    }
+
+    case "copy": handleCopy(el); break;
+
+    case "affiliate": {
+      var af = firmBySlug(el.getAttribute("data-slug"));
+      if (!af) break;
+      track("affiliate_clicked", { firm:af.name, offer:hasLiveOffer(af) ? af.discountCode : null });
+      toast("Demo referral click recorded for " + af.name + ". The production version will redirect through the affiliate tracking system.");
+      break;
+    }
+
+    case "stub":
+      e.preventDefault();
+      toast(el.getAttribute("data-stub") + " page is not part of this prototype.", "alert");
+      break;
+
+    case "open-guide": openGuide(el.getAttribute("data-guide")); break;
+
+    case "search-firm":
+      closeOverlay();
+      go("#/firm/" + el.getAttribute("data-slug"));
+      break;
+
+    case "search-guide": {
+      var gid = el.getAttribute("data-guide");
+      closeOverlay();
+      window.setTimeout(function(){ openGuide(gid); }, 220);
+      break;
+    }
+
+    case "search-suggest": {
+      var sq = el.getAttribute("data-q");
+      document.getElementById("searchInput").value = sq;
+      renderSearch(sq);
+      break;
+    }
+
+    // ---- homepage quick matcher ----
+    case "quick-toggle": {
+      var k = el.getAttribute("data-key");
+      var qi = state.quick.priorities.indexOf(k);
+      if (qi > -1) state.quick.priorities.splice(qi, 1); else state.quick.priorities.push(k);
+      state.quick.results = null;
+      render(false);
+      break;
+    }
+
+    case "quick-run": {
+      if (!state.quick.priorities.length) break;
+      track("matcher_started", { surface:"home_preview", priorities:state.quick.priorities.slice() });
+      state.quick.loading = true;
+      state.quick.results = null;
+      document.getElementById("quickResults").innerHTML = quickResultsHtml();
+      window.setTimeout(function(){
+        state.quick.loading = false;
+        state.quick.results = runMatch({ priorities:state.quick.priorities }, 3);
+        var host = document.getElementById("quickResults");
+        if (host) host.innerHTML = quickResultsHtml();
+        track("matcher_completed", {
+          surface:"home_preview",
+          top:state.quick.results.map(function(r){ return r.firm.name + " " + r.score + "%"; })
+        });
+      }, 340);
+      break;
+    }
+
+    // ---- full matcher ----
+    case "matcher-pick": {
+      var mk = el.getAttribute("data-key");
+      var mv = el.getAttribute("data-value");
+      var q = MATCH_QUESTIONS[state.matcher.step];
+      if (q.multi) {
+        var list = state.matcher[mk];
+        var pos = list.indexOf(mv);
+        if (pos > -1) list.splice(pos, 1);
+        else if (list.length >= 3) toast("Pick up to three priorities.", "alert");
+        else list.push(mv);
+      } else {
+        state.matcher[mk] = (mk === "size") ? parseInt(mv, 10) : mv;
+      }
+      render(false);
+      break;
+    }
+
+    case "matcher-next": {
+      if (state.matcher.step < MATCH_QUESTIONS.length - 1) {
+        state.matcher.step++;
+        render(false);
+      } else {
+        state.matcher.loading = true;
+        state.matcher.done = true;
+        render(false);
+        window.setTimeout(function(){
+          var prefs = {
+            market:state.matcher.market, challenge:state.matcher.challenge,
+            priorities:state.matcher.priorities, size:state.matcher.size
+          };
+          state.matcher.results = runMatch(prefs, 3);
+          state.matcher.loading = false;
+          render(false);
+          track("matcher_completed", {
+            surface:"matcher_page", market:prefs.market, challenge:prefs.challenge,
+            priorities:prefs.priorities, size:prefs.size,
+            top:state.matcher.results.map(function(r){ return r.firm.name + " " + r.score + "%"; })
+          });
+        }, 480);
+      }
+      break;
+    }
+
+    case "matcher-back":
+      if (state.matcher.step > 0) { state.matcher.step--; render(false); }
+      break;
+
+    case "matcher-restart":
+      state.matcher = { step:0, market:null, challenge:null, priorities:[], size:null, done:false, loading:false, results:[] };
+      track("matcher_started", { surface:"matcher_page" });
+      render(false);
+      break;
+  }
+});
+
+/* input events (delegated) */
+document.addEventListener("input", function(e){
+  var t = e.target;
+  if (t.id === "searchInput") { renderSearch(t.value); return; }
+  if (t.id === "listSearch") {
+    state.query = t.value;
+    var pos = t.selectionStart;
+    render(false);
+    var again = document.getElementById("listSearch");
+    if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (err) {} }
+    return;
+  }
+  if (t.id === "priceRange") { state.filters.maxPrice = parseInt(t.value, 10); syncFilters(t); return; }
+  if (t.id === "splitRange") { state.filters.minSplit = parseInt(t.value, 10); syncFilters(t); return; }
+  if (t.id === "drawRange") { state.filters.minDrawdown = parseInt(t.value, 10); syncFilters(t); return; }
+});
+function syncFilters(activeEl){
+  var id = activeEl ? activeEl.id : null;
+  renderFilterBody();
+  render(false);
+  if (id) {
+    var el = document.getElementById(id);
+    if (el) el.focus();
+  }
+}
+document.addEventListener("change", function(e){
+  var t = e.target;
+  if (t.id === "sortSelect") {
+    state.sort = t.value;
+    track("sort_changed", { sort:t.value });
+    render(false);
+    var s = document.getElementById("sortSelect");
+    if (s) s.focus();
+    return;
+  }
+  if (t.getAttribute && t.getAttribute("data-filter")) {
+    var kind = t.getAttribute("data-filter");
+    if (kind === "hasDiscount") {
+      state.filters.hasDiscount = t.checked;
+    } else {
+      var arr = state.filters[kind];
+      var i = arr.indexOf(t.value);
+      if (t.checked && i === -1) arr.push(t.value);
+      if (!t.checked && i > -1) arr.splice(i, 1);
+    }
+    document.getElementById("filterApply").textContent = "Show " + filteredFirms().length + " firms";
+    render(false);
+  }
+});
+
+/* keyboard */
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape") {
+    if (openOverlay) { closeOverlay(); return; }
+    hideTip();
+    closeMenu();
+    return;
+  }
+  if (openOverlay) { trapFocus(e); return; }
+  var tag = (e.target.tagName || "").toLowerCase();
+  var typing = tag === "input" || tag === "select" || tag === "textarea";
+  if (!typing && (e.key === "/" || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k"))) {
+    e.preventDefault();
+    showOverlay("searchOverlay");
+    document.getElementById("searchInput").value = "";
+    renderSearch("");
+  }
+});
+
+/* tooltips */
+var tipEl = document.getElementById("tip");
+var tipOwner = null;
+function showTip(btn, allowToggle){
+  var key = btn.getAttribute("data-tip");
+  var data = TIPS[key];
+  if (!data) return;
+  if (allowToggle && tipOwner === btn && !tipEl.hidden) { hideTip(); return; }
+  tipOwner = btn;
+  tipEl.innerHTML = "<strong>" + esc(data.t) + "</strong>" + esc(data.d);
+  tipEl.hidden = false;
+  var r = btn.getBoundingClientRect();
+  var w = Math.min(260, window.innerWidth - 24);
+  tipEl.style.width = w + "px";
+  var left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), window.innerWidth - w - 12);
+  var top = r.bottom + 8;
+  var estH = 84;
+  if (top + estH > window.innerHeight) top = Math.max(12, r.top - estH - 4);
+  tipEl.style.left = left + "px";
+  tipEl.style.top = top + "px";
+  void tipEl.offsetWidth;
+  tipEl.classList.add("show");
+}
+function hideTip(){
+  if (tipEl.hidden) return;
+  tipEl.classList.remove("show");
+  tipOwner = null;
+  window.setTimeout(function(){ if (!tipEl.classList.contains("show")) tipEl.hidden = true; }, 180);
+}
+document.addEventListener("mouseover", function(e){
+  var b = e.target.closest ? e.target.closest("[data-tip]") : null;
+  if (b && window.matchMedia("(hover:hover)").matches) showTip(b);
+});
+document.addEventListener("mouseout", function(e){
+  var b = e.target.closest ? e.target.closest("[data-tip]") : null;
+  if (b && window.matchMedia("(hover:hover)").matches) hideTip();
+});
+document.addEventListener("focusin", function(e){
+  var b = e.target.closest ? e.target.closest("[data-tip]") : null;
+  if (b) showTip(b);
+});
+window.addEventListener("scroll", hideTip, { passive:true });
+window.addEventListener("resize", function(){
+  hideTip();
+  if (window.innerWidth > 900) closeMenu();
+});
+
+/* =========================
+   BOOT
+   ========================= */
+window.addEventListener("hashchange", route);
+route();
+console.log("%cFundedScope prototype", "font-weight:600", "— demo data only. Event log at window.__fundedscopeEvents");
+})();
+</script>
+</body>
+</html>
