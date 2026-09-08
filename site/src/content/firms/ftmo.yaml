@@ -1,0 +1,17 @@
+# FTMO — firm record.
+#
+# Identity only. No factual claims about FTMO are recorded here: pricing,
+# account sizes, targets, drawdown, payouts, fees and rules are added in the
+# verified-content phase, each with a source URL, publisher and verification
+# date recorded against it.
+#
+# Nothing may be added here with status `verified` unless it was actually
+# checked against FTMO's own published material on the date given.
+# See docs/CONTENT.md.
+
+slug: ftmo
+name: FTMO
+status: active
+
+# No facts recorded yet.
+facts: []
