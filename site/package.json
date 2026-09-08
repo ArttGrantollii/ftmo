@@ -1,0 +1,23 @@
+{
+  "name": "ftmo-guide-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent prop-firm information site — production application (Phase 1A scaffold).",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "engines": {
+    "node": ">=20.3.0"
+  },
+  "dependencies": {
+    "astro": "7.3.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "typescript": "6.0.3"
+  }
+}

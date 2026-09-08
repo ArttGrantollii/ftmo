@@ -1,0 +1,45 @@
+---
+// Minimal Phase 1A layout.
+// Deliberately unstyled beyond the bare minimum: the real design system
+// (tokens, typography, components) is ported from the V2 prototype in a later phase.
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <!-- Scaffold only: not a public site yet. -->
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: light;
+    font-family:
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      sans-serif;
+  }
+
+  body {
+    margin: 0;
+    padding: 2rem 1.5rem;
+    background: #f4f5f3;
+    color: #13171c;
+    line-height: 1.55;
+  }
+</style>

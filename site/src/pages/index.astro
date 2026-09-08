@@ -1,0 +1,101 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// Placeholder navigation. Real routes are defined in a later phase.
+const navPlaceholder = ['How It Works', 'Accounts', 'Rules', 'Calculator', 'FAQ'];
+
+const buildTime = new Date().toISOString();
+---
+
+<BaseLayout
+  title="Production scaffold — Phase 1A"
+  description="Phase 1A scaffold. Not the production site."
+>
+  <main class="wrap">
+    <p class="eyebrow">Phase 1A — production scaffold</p>
+    <h1>Site name placeholder</h1>
+    <p class="lede">
+      This page exists only to prove the production architecture builds and runs. It is not the
+      website. The approved V2 design, content, calculators and affiliate functionality are migrated
+      in later phases.
+    </p>
+
+    <section aria-labelledby="status">
+      <h2 id="status">Scaffold status</h2>
+      <ul class="status">
+        <li><strong>Framework:</strong> Astro, static output</li>
+        <li><strong>Language:</strong> TypeScript (strict)</li>
+        <li><strong>Backend:</strong> none — no server runtime, no API routes, no database</li>
+        <li><strong>Analytics / affiliate / CMS / search:</strong> none</li>
+        <li><strong>Built:</strong> <time datetime={buildTime}>{buildTime}</time></li>
+      </ul>
+    </section>
+
+    <nav aria-label="Navigation placeholder">
+      <h2>Navigation placeholder</h2>
+      <ul class="nav">
+        {navPlaceholder.map((item) => <li>{item}</li>)}
+      </ul>
+      <p class="note">Not links yet — these routes do not exist.</p>
+    </nav>
+  </main>
+
+  <footer class="wrap">
+    <p class="note">
+      Footer placeholder. Independent site — not affiliated with any prop firm. No FTMO data is
+      published on this page.
+    </p>
+  </footer>
+</BaseLayout>
+
+<style>
+  .wrap {
+    max-width: 60ch;
+    margin: 0 auto;
+  }
+
+  .eyebrow {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #68707a;
+  }
+
+  h1 {
+    margin: 0 0 0.75rem;
+    font-size: 1.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    margin: 2rem 0 0.5rem;
+    font-size: 1rem;
+  }
+
+  .lede {
+    margin: 0;
+    color: #39414b;
+  }
+
+  ul {
+    padding-left: 1.1rem;
+  }
+
+  .status li,
+  .nav li {
+    margin-bottom: 0.25rem;
+  }
+
+  .note {
+    font-size: 0.8125rem;
+    color: #68707a;
+  }
+
+  footer {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e4df;
+  }
+</style>
