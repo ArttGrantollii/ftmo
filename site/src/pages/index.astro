@@ -10,10 +10,11 @@ import Button from '../components/Button.astro';
 import Card from '../components/Card.astro';
 import Badge from '../components/Badge.astro';
 import Disclosure from '../components/Disclosure.astro';
-import FeatureStub from '../components/FeatureStub.astro';
 import ResearchFields from '../components/ResearchFields.astro';
 import type { ResearchField } from '../components/ResearchFields.astro';
 import AccountExplorer from '../components/AccountExplorer.astro';
+import RiskCalculator from '../components/RiskCalculator.astro';
+import FitCheck from '../components/FitCheck.astro';
 import type { ProductGroup } from '../components/AccountExplorer.astro';
 
 import { auditFirm, type DisplayFact } from '../lib/content/facts';
@@ -528,7 +529,7 @@ const guides = [
       id="accounts-title"
       eyebrow="Accounts"
       title="Account options explained"
-      lede="FTMO runs the CFD evaluation as two products. Several objectives differ between them, and two figures that look identical are governed by different mechanisms — so they are set out separately rather than merged. FTMO’s own options only; this site ranks nothing."
+      lede="FTMO runs the CFD evaluation as two products. Several objectives differ between them, and two figures that look identical are governed by different mechanisms — so they are set out separately rather than merged. Filter to one product, or read them side by side. FTMO’s own options only; this site ranks nothing."
     />
     <AccountExplorer
       commonFields={commonAccountFields}
@@ -578,18 +579,17 @@ const guides = [
       id="calculator-title"
       eyebrow="Calculator"
       title="Turning percentages into money"
-      lede="A percentage is abstract until it is converted into an amount. This is where that conversion will live."
+      lede="A percentage is abstract until it is money. Enter an account size and each verified rule is shown beside the amount it comes to — the rule and the arithmetic kept visibly apart."
     />
 
-    <FeatureStub
-      title="Account and risk calculator"
-      description="Choose an account size and a risk per trade, and see what the profit target, the drawdown allowance and the daily limit amount to in money — including how many consecutive losses the allowance absorbs. It will run entirely in the browser, send nothing anywhere, and take its default values from verified facts rather than from figures typed into a component."
-      headingLevel="h3"
-    >
-      <p class="stub__caveat">
-        Its outputs will be educational examples rather than trading or financial advice.
-      </p>
-    </FeatureStub>
+    <RiskCalculator facts={publishedFacts} />
+
+    <p class="tool__footnote">
+      Everything here runs in your browser. Nothing is sent anywhere, nothing is stored, and
+      refreshing the page clears it. The amounts are arithmetic on FTMO's published percentages,
+      not figures FTMO publishes in dollars, and they are educational examples rather than trading
+      or financial advice.
+    </p>
   </Section>
 
   <!-- ===================================================================
@@ -600,14 +600,10 @@ const guides = [
       id="fit-title"
       eyebrow="Fit check"
       title="Is this model right for you?"
-      lede="The structure suits some ways of trading and fights others. Each point below follows from a published FTMO rule rather than an opinion about the firm. It is an educational observation, not a recommendation."
+      lede="The two products differ in ways that suit different preferences. Answer the questions to see which set of published rules lines up with yours, then read the wider considerations beneath. This is an educational observation, not a recommendation."
     />
 
-    <FeatureStub
-      title="Three-question fit check"
-      description="A short set of questions about experience, comfort with fixed risk limits and holding period, returning an observation about where this model is likely to help or to rub. It will answer in the page, store nothing and send nothing."
-      headingLevel="h3"
-    />
+    <FitCheck facts={publishedFacts} class="fit__tool" />
 
     <div class="decide">
       <Card variant="info">
@@ -996,18 +992,20 @@ const guides = [
     color: var(--color-ink-muted);
   }
 
-  /* Calculator stub -------------------------------------------------- */
-  .stub__caveat {
-    margin-top: var(--space-3);
+  /* Tool footnotes --------------------------------------------------- */
+  .tool__footnote {
+    margin-top: var(--space-4);
+    max-width: 78ch;
     font-size: var(--text-sm);
-    color: var(--color-ink-faint);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
   }
 
   /* Fit check -------------------------------------------------------- */
   .decide {
     display: grid;
     gap: var(--space-4);
-    margin-top: var(--space-5);
+    margin-top: var(--space-6);
     grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
   }
 

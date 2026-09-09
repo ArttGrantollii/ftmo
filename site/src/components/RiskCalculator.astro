@@ -1,0 +1,724 @@
+---
+import { toToolFacts } from '../lib/tools/facts';
+import { CALC_LIMITS } from '../lib/tools/calculator';
+import type { DisplayFact } from '../lib/content/facts';
+
+/**
+ * Account and risk calculator.
+ *
+ * Converts FTMO's verified percentages into the amounts they represent for a
+ * capital figure the reader types. That is arithmetic on a published rule, not
+ * a new claim, and the interface says so on every row: the rule and the derived
+ * amount are shown in separate, differently labelled columns.
+ *
+ * No FTMO figure appears in this component or in its script. The percentages
+ * are serialised from the firm record into a data attribute and parsed back in
+ * the browser, so the record stays the only place they exist.
+ *
+ * Three things it deliberately does NOT do:
+ *
+ * - It does not model the 1-Step trailing floor. That limit is recalculated
+ *   daily against the highest end-of-day balance, so no single multiplication
+ *   describes it. The row is labelled as a day-one reference and carries the
+ *   verified note explaining that the real floor moves.
+ * - It does not estimate profit, return, or any probability of passing.
+ * - It does not convert currency. The verified account-size range is published
+ *   in USD, so USD is what it works in.
+ *
+ * Progressive enhancement: the form is `hidden` in the served markup and the
+ * script reveals it. Without JavaScript a reader sees an explanation and the
+ * verified percentages rather than a dead form.
+ */
+interface Props {
+  facts: ReadonlyMap<string, DisplayFact>;
+  class?: string;
+}
+
+const { facts, class: className } = Astro.props;
+
+/**
+ * The keys this tool may use. `account-size-range` is included so the input can
+ * tell a reader when their figure sits outside FTMO's published range — using
+ * the verified range rather than a number typed in here.
+ */
+const CALCULATOR_FACT_KEYS = [
+  'account-size-range',
+  'one-step-profit-target',
+  'one-step-max-daily-loss',
+  'one-step-max-loss',
+  'two-step-challenge-profit-target',
+  'two-step-verification-profit-target',
+  'two-step-max-daily-loss',
+  'two-step-max-loss',
+] as const;
+
+const payload = toToolFacts(facts, CALCULATOR_FACT_KEYS);
+
+/**
+ * Which rules each product shows, in order.
+ *
+ * `reference` marks a rule whose value is a day-one figure rather than a limit
+ * that stays put — it mirrors what the verified note for that fact already
+ * says, and the note itself is always rendered beneath the row.
+ */
+const productRules = {
+  'one-step': [
+    { key: 'one-step-profit-target' },
+    { key: 'one-step-max-daily-loss' },
+    { key: 'one-step-max-loss', reference: true },
+  ],
+  'two-step': [
+    { key: 'two-step-challenge-profit-target' },
+    { key: 'two-step-verification-profit-target' },
+    { key: 'two-step-max-daily-loss' },
+    { key: 'two-step-max-loss' },
+  ],
+};
+
+const config = {
+  facts: payload,
+  rules: productRules,
+  limits: CALC_LIMITS,
+};
+
+const rangeFact = payload['account-size-range'];
+---
+
+<div class:list={['calc', className]} data-calc data-config={JSON.stringify(config)}>
+  {/* Shown when the script has not run. */}
+  <div class="calc__fallback" data-calc-fallback>
+    <p class="calc__fallback-title">This calculator needs JavaScript</p>
+    <p>
+      It converts FTMO's published percentages into amounts for an account size you choose. The
+      percentages themselves are listed under <a href="#accounts">account options</a> and
+      <a href="#rules">the rules</a>, with the FTMO page each came from — those work without
+      scripting.
+    </p>
+  </div>
+
+  <form class="calc__form" data-calc-form hidden novalidate>
+    <fieldset class="calc__fieldset">
+      <legend class="calc__legend">Which evaluation are you costing out?</legend>
+      <div class="calc__choices">
+        <label class="choice">
+          <input type="radio" name="product" value="one-step" checked />
+          <span class="choice__label">FTMO Challenge: 1-Step</span>
+        </label>
+        <label class="choice">
+          <input type="radio" name="product" value="two-step" />
+          <span class="choice__label">FTMO Challenge: 2-Step</span>
+        </label>
+      </div>
+    </fieldset>
+
+    <div class="calc__inputs">
+      <div class="field">
+        <label class="field__label" for="calc-account">Account size in US dollars</label>
+        <p class="field__hint" id="calc-account-hint">
+          {
+            rangeFact ? (
+              <>
+                FTMO publishes account sizes from <strong>{rangeFact.display}</strong>. You can
+                enter any figure; anything outside that range is flagged.
+              </>
+            ) : (
+              <>Enter the simulated capital you want to work from.</>
+            )
+          }
+        </p>
+        <input
+          class="field__input"
+          id="calc-account"
+          name="account"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          value="100000"
+          aria-describedby="calc-account-hint calc-account-error"
+        />
+        <p class="field__error" id="calc-account-error" data-error-for="account" role="alert"></p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="calc-risk">Risk per trade, as a percentage (optional)</label>
+        <p class="field__hint" id="calc-risk-hint">
+          Your own number, not an FTMO rule. Used only to show what that risk comes to in money.
+        </p>
+        <input
+          class="field__input"
+          id="calc-risk"
+          name="risk"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          placeholder="e.g. 1"
+          aria-describedby="calc-risk-hint calc-risk-error"
+        />
+        <p class="field__error" id="calc-risk-error" data-error-for="risk" role="alert"></p>
+      </div>
+    </div>
+
+    <p class="calc__range-note" data-range-note hidden></p>
+
+    {/* Results are announced politely so a screen-reader user hears updates. */}
+    <div class="calc__results" data-calc-results aria-live="polite" aria-atomic="false"></div>
+  </form>
+</div>
+
+<script>
+  import {
+    CALC_LIMITS,
+    computeRuleAmounts,
+    formatUsd,
+    parseAmount,
+    percentageAmount,
+    type AmountProblem,
+    type RuleAmount,
+  } from '../lib/tools/calculator';
+  import { asPercentFact, parseAccountSizeRange, type ToolFactMap } from '../lib/tools/facts';
+
+  interface RuleRef {
+    key: string;
+    reference?: boolean;
+  }
+
+  interface CalcConfig {
+    facts: ToolFactMap;
+    rules: Record<string, RuleRef[]>;
+    limits: typeof CALC_LIMITS;
+  }
+
+  const ACCOUNT_PROBLEMS: Record<AmountProblem, string> = {
+    empty: 'Enter an account size.',
+    'not-a-number': 'Enter a number, using digits only.',
+    zero: 'Enter an account size greater than zero.',
+    negative: 'Enter a positive account size.',
+    'too-small': 'That is below the smallest figure this calculator handles.',
+    'too-large': `That is above the largest figure this calculator handles (${formatUsd(
+      CALC_LIMITS.maxAccount,
+    )}). This is a limit of the calculator, not an FTMO rule.`,
+  };
+
+  const RISK_PROBLEMS: Record<AmountProblem, string> = {
+    empty: '',
+    'not-a-number': 'Enter a number, using digits only.',
+    zero: 'Enter a percentage greater than zero.',
+    negative: 'Enter a positive percentage.',
+    'too-small': 'Enter a percentage of at least 0.01.',
+    'too-large': 'Enter a percentage of 100 or less.',
+  };
+
+  function setError(form: HTMLFormElement, field: string, message: string): void {
+    const node = form.querySelector<HTMLElement>(`[data-error-for="${field}"]`);
+    const input = form.elements.namedItem(field);
+    if (node) node.textContent = message;
+    if (input instanceof HTMLInputElement) {
+      // aria-invalid rather than colour alone, so the state is announced.
+      if (message) input.setAttribute('aria-invalid', 'true');
+      else input.removeAttribute('aria-invalid');
+    }
+  }
+
+  /** Build one result row with explicit DOM calls — never innerHTML. */
+  function renderRow(row: RuleAmount, isReference: boolean): HTMLElement {
+    const item = document.createElement('li');
+    item.className = 'result';
+
+    const head = document.createElement('div');
+    head.className = 'result__head';
+
+    const label = document.createElement('p');
+    label.className = 'result__label';
+    label.textContent = row.label;
+    head.append(label);
+
+    if (isReference) {
+      const flag = document.createElement('p');
+      flag.className = 'result__flag';
+      flag.textContent = 'Day-one reference only';
+      head.append(flag);
+    }
+
+    item.append(head);
+
+    const pair = document.createElement('div');
+    pair.className = 'result__pair';
+
+    const ruleCell = document.createElement('div');
+    ruleCell.className = 'result__cell';
+    const ruleTerm = document.createElement('p');
+    ruleTerm.className = 'result__term';
+    ruleTerm.textContent = 'FTMO rule';
+    const ruleValue = document.createElement('p');
+    ruleValue.className = 'result__rule tabular';
+    ruleValue.textContent = row.ruleDisplay;
+    ruleCell.append(ruleTerm, ruleValue);
+
+    const amountCell = document.createElement('div');
+    amountCell.className = 'result__cell';
+    const amountTerm = document.createElement('p');
+    amountTerm.className = 'result__term';
+    amountTerm.textContent = 'Calculated from that percentage';
+    const amountValue = document.createElement('p');
+    amountValue.className = 'result__amount tabular';
+    amountValue.textContent = row.amountDisplay;
+    amountCell.append(amountTerm, amountValue);
+
+    pair.append(ruleCell, amountCell);
+    item.append(pair);
+
+    if (isReference) {
+      const caveat = document.createElement('p');
+      caveat.className = 'result__caveat';
+      caveat.textContent =
+        'This limit does not stay here. It is recalculated daily against your highest end-of-day balance, so the figure above describes only where the floor starts — not where it will be once you have traded.';
+      item.append(caveat);
+    }
+
+    if (row.notes) {
+      const note = document.createElement('p');
+      note.className = 'result__note';
+      note.textContent = row.notes;
+      item.append(note);
+    }
+
+    if (row.sourceUrl && row.sourceTitle) {
+      const source = document.createElement('p');
+      source.className = 'result__source';
+      const link = document.createElement('a');
+      link.href = row.sourceUrl;
+      link.rel = 'nofollow noopener';
+      link.textContent = row.sourceTitle;
+      source.append(link);
+      item.append(source);
+    }
+
+    return item;
+  }
+
+  function renderUnavailable(key: string): HTMLElement {
+    const item = document.createElement('li');
+    item.className = 'result result--unavailable';
+    const label = document.createElement('p');
+    label.className = 'result__label';
+    label.textContent = key;
+    const body = document.createElement('p');
+    body.className = 'result__note';
+    body.textContent =
+      'No verified percentage is published for this rule, so no amount is calculated. Nothing is estimated in its place.';
+    item.append(label, body);
+    return item;
+  }
+
+  function init(root: HTMLElement): void {
+    const raw = root.dataset.config;
+    if (!raw) return;
+
+    let config: CalcConfig;
+    try {
+      config = JSON.parse(raw) as CalcConfig;
+    } catch {
+      return; // Leave the no-script fallback in place.
+    }
+
+    const form = root.querySelector<HTMLFormElement>('[data-calc-form]');
+    const fallback = root.querySelector<HTMLElement>('[data-calc-fallback]');
+    const results = root.querySelector<HTMLElement>('[data-calc-results]');
+    const rangeNote = root.querySelector<HTMLElement>('[data-range-note]');
+    if (!form || !results) return;
+
+    form.hidden = false;
+    if (fallback) fallback.hidden = true;
+
+    const range = parseAccountSizeRange(
+      typeof config.facts['account-size-range']?.value === 'string'
+        ? (config.facts['account-size-range'].value as string)
+        : config.facts['account-size-range']?.display,
+    );
+
+    function update(): void {
+      const accountInput = form!.elements.namedItem('account');
+      const riskInput = form!.elements.namedItem('risk');
+      if (!(accountInput instanceof HTMLInputElement) || !(riskInput instanceof HTMLInputElement)) {
+        return;
+      }
+
+      const product =
+        form!.querySelector<HTMLInputElement>('input[name="product"]:checked')?.value ?? 'one-step';
+
+      const account = parseAmount(accountInput.value, {
+        min: config.limits.minAccount,
+        max: config.limits.maxAccount,
+      });
+
+      results!.replaceChildren();
+
+      if (!account.ok) {
+        setError(form!, 'account', ACCOUNT_PROBLEMS[account.problem]);
+        if (rangeNote) rangeNote.hidden = true;
+        return;
+      }
+      setError(form!, 'account', '');
+
+      // Outside FTMO's published range: worth saying, never a blocker.
+      if (rangeNote) {
+        if (range && (account.value < range.min || account.value > range.max)) {
+          rangeNote.hidden = false;
+          rangeNote.textContent = `${formatUsd(
+            account.value,
+          )} is outside the account-size range FTMO publishes (${
+            config.facts['account-size-range']?.display ?? ''
+          }). The arithmetic below still holds, but no FTMO account of this size is published.`;
+        } else {
+          rangeNote.hidden = true;
+          rangeNote.textContent = '';
+        }
+      }
+
+      const refs = config.rules[product] ?? [];
+      const list = document.createElement('ul');
+      list.className = 'results__list';
+
+      const usable: { ref: RuleRef; fact: NonNullable<ReturnType<typeof asPercentFact>> }[] = [];
+      for (const ref of refs) {
+        const percentFact = asPercentFact(config.facts[ref.key]);
+        if (percentFact) usable.push({ ref, fact: percentFact });
+        else list.append(renderUnavailable(ref.key));
+      }
+
+      const rows = computeRuleAmounts(
+        account.value,
+        usable.map((entry) => entry.fact),
+      );
+      rows.forEach((row, index) => {
+        list.append(renderRow(row, Boolean(usable[index]?.ref.reference)));
+      });
+
+      results!.append(list);
+
+      // --- Optional risk figure ------------------------------------------
+      const riskRaw = riskInput.value.trim();
+      if (riskRaw === '') {
+        setError(form!, 'risk', '');
+        return;
+      }
+
+      const risk = parseAmount(riskRaw, {
+        min: config.limits.minPercent,
+        max: config.limits.maxPercent,
+      });
+      if (!risk.ok) {
+        setError(form!, 'risk', RISK_PROBLEMS[risk.problem]);
+        return;
+      }
+      setError(form!, 'risk', '');
+
+      const riskAmount = percentageAmount(account.value, risk.value);
+      const panel = document.createElement('div');
+      panel.className = 'risk';
+
+      const heading = document.createElement('h4');
+      heading.className = 'risk__title';
+      heading.textContent = 'Your risk setting';
+      panel.append(heading);
+
+      const amountLine = document.createElement('p');
+      amountLine.className = 'risk__line';
+      amountLine.textContent = `Risking ${risk.value}% of ${formatUsd(
+        account.value,
+      )} is ${formatUsd(riskAmount)} per trade.`;
+      panel.append(amountLine);
+
+      const caveat = document.createElement('p');
+      caveat.className = 'risk__caveat';
+      caveat.textContent =
+        'Your own figure converted into money. It ignores spread, commission, swap and slippage, and is not a recommendation about how much to risk.';
+      panel.append(caveat);
+
+      results!.append(panel);
+    }
+
+    form.addEventListener('input', update);
+    form.addEventListener('change', update);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    update();
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-calc]').forEach(init);
+</script>
+
+<style>
+  .calc {
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .calc__fallback-title {
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+  }
+
+  .calc__fallback p:not(.calc__fallback-title) {
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+    max-width: 66ch;
+  }
+
+  .calc__fieldset {
+    margin: 0 0 var(--space-5);
+    padding: 0;
+    border: 0;
+  }
+
+  .calc__legend {
+    padding: 0;
+    margin-bottom: var(--space-3);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+  }
+
+  .calc__choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .choice {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    cursor: pointer;
+  }
+
+  .choice:hover {
+    background: var(--color-surface-alt);
+  }
+
+  /* The checked state is carried by the native control, not by colour alone. */
+  .choice:has(input:checked) {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+
+  .choice input {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--color-accent);
+    flex: none;
+  }
+
+  .choice__label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+
+  .calc__inputs {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+  }
+
+  .field {
+    min-width: 0;
+  }
+
+  .field__label {
+    display: block;
+    margin-bottom: var(--space-1);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+
+  .field__hint {
+    margin-bottom: var(--space-2);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+  }
+
+  .field__input {
+    width: 100%;
+    height: var(--control-height);
+    padding-inline: var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .field__input[aria-invalid='true'] {
+    border-color: var(--color-negative);
+    border-width: 2px;
+  }
+
+  .field__error:not(:empty) {
+    margin-top: var(--space-2);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--color-negative);
+  }
+
+  /* A mark as well as colour, so the error is not colour-only. */
+  .field__error:not(:empty)::before {
+    content: '✕ ';
+  }
+
+  .calc__range-note:not([hidden]) {
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-warning-soft);
+    color: var(--color-warning);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .calc__results {
+    margin-top: var(--space-5);
+  }
+
+  .calc :global(.results__list) {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+    /* Cards size to their own content; notes differ a lot in length. */
+    align-items: start;
+  }
+
+  .calc :global(.result) {
+    min-width: 0;
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+  }
+
+  .calc :global(.result--unavailable) {
+    border-style: dashed;
+  }
+
+  .calc :global(.result__head) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
+  .calc :global(.result__label) {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+  }
+
+  .calc :global(.result__flag) {
+    padding: 0.05rem var(--space-2);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-xs);
+    background: var(--color-warning-soft);
+    color: var(--color-warning);
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+
+  .calc :global(.result__pair) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+
+  .calc :global(.result__cell) {
+    min-width: 0;
+  }
+
+  .calc :global(.result__term) {
+    font-size: var(--text-xs);
+    color: var(--color-ink-faint);
+  }
+
+  .calc :global(.result__rule),
+  .calc :global(.result__amount) {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .calc :global(.result__rule) {
+    color: var(--color-ink);
+  }
+
+  .calc :global(.result__amount) {
+    color: var(--color-accent);
+  }
+
+  .calc :global(.result__caveat) {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-warning-border);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    color: var(--color-warning);
+  }
+
+  .calc :global(.result__note) {
+    margin-top: var(--space-3);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+  }
+
+  .calc :global(.result__source) {
+    margin-top: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--color-ink-faint);
+  }
+
+  .calc :global(.risk) {
+    margin-top: var(--space-4);
+    padding: var(--space-4);
+    border: 1px solid var(--color-accent-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-accent-soft);
+  }
+
+  .calc :global(.risk__title) {
+    margin-bottom: var(--space-2);
+  }
+
+  .calc :global(.risk__line) {
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+  }
+
+  .calc :global(.risk__caveat) {
+    margin-top: var(--space-3);
+    font-size: var(--text-xs);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+  }
+
+  @media (max-width: 40rem) {
+    .calc {
+      padding: var(--space-4);
+    }
+
+    .choice {
+      width: 100%;
+    }
+  }
+</style>

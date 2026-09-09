@@ -20,9 +20,15 @@ import type { DisplayFact } from '../lib/content/facts';
  * whichever product the reader is actually looking at, which is the failure
  * mode this whole content architecture exists to prevent.
  *
- * Selecting a specific account size remains a later phase. What is published
- * here is the size range, which is a verified fact; the discrete selector is
- * held by a stub.
+ * Phase 2C adds a product filter. It is progressive enhancement, not a rewrite:
+ * both panels remain in the served HTML exactly as before, and the control is
+ * `hidden` until the script reveals it — so a reader without JavaScript sees
+ * the full comparison rather than a dead control.
+ *
+ * There is still no account-size selector, deliberately. Phase 2B could not
+ * verify FTMO's discrete account sizes, only the published range, so offering a
+ * list of sizes would mean inventing them. The range is shown as the verified
+ * fact it is, and the absence is explained rather than papered over.
  */
 export interface ProductGroup {
   title: string;
@@ -42,16 +48,38 @@ interface Props {
 const { commonFields, groups, facts, class: className }: Props = Astro.props;
 ---
 
-<div class:list={['explorer', className]}>
+<div class:list={['explorer', className]} data-explorer>
   <div class="explorer__common">
     <h3 class="explorer__heading">Common to both models</h3>
     <ResearchFields fields={commonFields} facts={facts} minColumn="13rem" />
   </div>
 
-  <div class="explorer__products">
+  {/*
+    Revealed by the script. Filtering is a convenience over content that is
+    already present, so it must not exist for readers who cannot use it.
+  */}
+  <fieldset class="explorer__filter" data-explorer-filter hidden>
+    <legend class="explorer__filter-legend">Show</legend>
+    <div class="explorer__filter-options">
+      <label class="choice">
+        <input type="radio" name="explorer-product" value="all" checked />
+        <span class="choice__label">Both, side by side</span>
+      </label>
+      {
+        groups.map((group) => (
+          <label class="choice">
+            <input type="radio" name="explorer-product" value={group.title} />
+            <span class="choice__label">{group.title}</span>
+          </label>
+        ))
+      }
+    </div>
+  </fieldset>
+
+  <div class="explorer__products" data-explorer-products>
     {
       groups.map((group) => (
-        <section class="product">
+        <section class="product" data-product={group.title}>
           <h3 class="product__title">{group.title}</h3>
           {group.summary && <p class="product__summary">{group.summary}</p>}
           <ResearchFields fields={group.fields} facts={facts} minColumn="12rem" />
@@ -66,6 +94,35 @@ const { commonFields, groups, facts, class: className }: Props = Astro.props;
     class="explorer__stub"
   />
 </div>
+
+<script>
+  /**
+   * Reveal the filter and apply it. The panels are already in the document —
+   * this only sets `hidden` on the ones the reader is not asking for, so no
+   * content is ever created, fetched or destroyed by script.
+   */
+  function init(root: HTMLElement): void {
+    const filter = root.querySelector<HTMLFieldSetElement>('[data-explorer-filter]');
+    const products = root.querySelectorAll<HTMLElement>('[data-product]');
+    if (!filter || products.length === 0) return;
+
+    filter.hidden = false;
+
+    const apply = (): void => {
+      const chosen =
+        filter.querySelector<HTMLInputElement>('input[name="explorer-product"]:checked')?.value ??
+        'all';
+      products.forEach((panel) => {
+        panel.hidden = chosen !== 'all' && panel.dataset.product !== chosen;
+      });
+    };
+
+    filter.addEventListener('change', apply);
+    apply();
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-explorer]').forEach(init);
+</script>
 
 <style>
   .explorer {
@@ -106,9 +163,70 @@ const { commonFields, groups, facts, class: className }: Props = Astro.props;
     color: var(--color-ink-muted);
   }
 
+  /* Product filter (revealed by script) ------------------------------ */
+  .explorer__filter {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .explorer__filter-legend {
+    padding: 0;
+    margin-bottom: var(--space-3);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+  }
+
+  .explorer__filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .choice {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-4);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    cursor: pointer;
+  }
+
+  .choice:hover {
+    background: var(--color-surface-alt);
+  }
+
+  /* State is carried by the native control as well as by the fill. */
+  .choice:has(input:checked) {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+
+  .choice input {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    accent-color: var(--color-accent);
+  }
+
+  .choice__label {
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+
   @media (max-width: 40rem) {
     .product {
       padding: var(--space-4);
+    }
+
+    .choice {
+      width: 100%;
     }
   }
 </style>
