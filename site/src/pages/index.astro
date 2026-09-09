@@ -1,4 +1,6 @@
 ---
+import { getEntry } from 'astro:content';
+
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
@@ -7,260 +9,1000 @@ import SectionHeading from '../components/SectionHeading.astro';
 import Button from '../components/Button.astro';
 import Card from '../components/Card.astro';
 import Badge from '../components/Badge.astro';
+import Disclosure from '../components/Disclosure.astro';
+import FeatureStub from '../components/FeatureStub.astro';
+import ResearchFields from '../components/ResearchFields.astro';
+import type { ResearchField } from '../components/ResearchFields.astro';
+import AccountExplorer from '../components/AccountExplorer.astro';
+
+import { auditFirm, type DisplayFact } from '../lib/content/facts';
+import { resolvePolicy } from '../lib/content/policy';
 
 /**
- * Phase 1C component showcase.
+ * Homepage — Phase 2A.
  *
- * This is a development harness for the design system, not the production
- * homepage. It contains no FTMO information and no production content — the
- * V2 prototype is migrated in Phase 2.
+ * The static structure of the approved V2 prototype, rebuilt on the Phase 1B
+ * content architecture and the Phase 1C design system. It is not a copy of the
+ * prototype: the prototype's markup, CSS and script are a reference, not the
+ * implementation.
  *
- * Navigation and footer entries below are placeholder labels used only to
- * exercise the components at realistic lengths.
+ * Two boundaries are load-bearing here.
+ *
+ * 1. **No unverified figure appears on this page.** Every slot that will hold
+ *    a factual value about FTMO — price, account size, target, drawdown,
+ *    split, fee, duration — is declared as a research *field* and filled from
+ *    the validated Fact architecture. `ftmo.yaml` currently records no facts,
+ *    so every one of those slots renders the "not verified yet" marker. The
+ *    figures in the prototype are placeholders and were deliberately not
+ *    carried across.
+ *
+ * 2. **No behaviour.** The calculator, the fit check and the account chooser
+ *    hold their positions in the information architecture as static stubs. No
+ *    client-side script is shipped by this page, and the mobile menu and the
+ *    expandable panels are native HTML elements rather than scripted widgets.
+ *
+ * Deliberately out of scope, each its own later phase: the affiliate
+ * destination and its disclosure wording, the `?source=meta` landing variant
+ * (see the note on the final call to action), analytics, structured data and
+ * the sticky mobile call-to-action bar.
  */
-const navPlaceholder = [
-  { label: 'Section one', href: '#tokens' },
-  { label: 'Section two', href: '#buttons' },
-  { label: 'Section three', href: '#cards' },
-  { label: 'Section four', href: '#badges' },
-  { label: 'Section five', href: '#type' },
+
+// ---------------------------------------------------------------------------
+// Facts
+//
+// `auditFirm` is the reporting form of the sanctioned fact reader: it returns
+// what may be published under the active policy instead of throwing on what
+// may not. That keeps the page renderable while the firm record is empty, and
+// keeps this page from ever becoming a second source of truth — a value that
+// is not in `content/firms/ftmo.yaml` cannot appear on the page at all.
+// ---------------------------------------------------------------------------
+const policy = resolvePolicy(import.meta.env);
+const ftmo = await getEntry('firms', 'ftmo');
+
+if (!ftmo) {
+  throw new Error('Firm record "ftmo" is missing from src/content/firms/.');
+}
+
+const audit = auditFirm(ftmo.data, policy);
+const publishedFacts: ReadonlyMap<string, DisplayFact> = new Map(
+  audit.publishable.map((fact) => [fact.key, fact]),
+);
+
+// ---------------------------------------------------------------------------
+// Structure
+//
+// Field lists describe which questions the site answers about a firm. They are
+// structure, not content: a label here asserts nothing about FTMO. The `key`
+// of each is the key the corresponding Fact will carry once it is verified.
+// ---------------------------------------------------------------------------
+const glanceFields: ResearchField[] = [
+  {
+    key: 'challenge-structure',
+    label: 'Challenge structure',
+    description: 'How many stages stand between buying an assessment and trading a funded account.',
+  },
+  {
+    key: 'profit-target',
+    label: 'Profit target',
+    description: 'The gain each stage asks for, as a proportion of the account size.',
+  },
+  {
+    key: 'max-drawdown',
+    label: 'Maximum drawdown',
+    description: 'The total loss that ends the account, measured from the starting balance.',
+  },
+  {
+    key: 'profit-split',
+    label: 'Profit split',
+    description: 'The share of profits the trader keeps once the account is funded.',
+  },
 ];
 
-const footerPlaceholder = [
+const accountFields: ResearchField[] = [
+  { key: 'account-fee', label: 'Assessment fee' },
+  { key: 'profit-target', label: 'Profit target' },
+  { key: 'max-drawdown', label: 'Maximum drawdown' },
+  { key: 'daily-loss-limit', label: 'Daily loss limit' },
+  { key: 'profit-split', label: 'Profit split' },
+  { key: 'payout-schedule', label: 'Payout schedule' },
+];
+
+const navItems = [
+  { label: 'How it works', href: '#how' },
+  { label: 'Accounts', href: '#accounts' },
+  { label: 'Rules', href: '#rules' },
+  { label: 'Calculator', href: '#calculator' },
+  { label: 'Fit check', href: '#fit' },
+  { label: 'FAQ', href: '#faq' },
+];
+
+const footerGroups = [
   {
-    heading: 'Group one',
+    heading: 'Guide',
     links: [
-      { label: 'Placeholder link', href: '#' },
-      { label: 'Placeholder link', href: '#' },
-      { label: 'Placeholder link', href: '#' },
+      { label: 'How it works', href: '#how' },
+      { label: 'Accounts', href: '#accounts' },
+      { label: 'Rules', href: '#rules' },
+      { label: 'Calculator', href: '#calculator' },
+      { label: 'FAQ', href: '#faq' },
     ],
   },
   {
-    heading: 'Group two',
+    heading: 'Transparency',
     links: [
-      { label: 'Placeholder link', href: '#' },
-      { label: 'Placeholder link', href: '#' },
+      { label: 'Methodology', href: '#methodology' },
+      { label: 'Disclosures', href: '#disclosures' },
+      { label: 'Guides', href: '#guides' },
     ],
   },
 ];
 
-const swatches = [
-  { name: 'paper', token: '--color-paper' },
-  { name: 'surface', token: '--color-surface' },
-  { name: 'surface-alt', token: '--color-surface-alt' },
-  { name: 'sunk', token: '--color-sunk' },
-  { name: 'ink', token: '--color-ink' },
-  { name: 'ink-secondary', token: '--color-ink-secondary' },
-  { name: 'ink-muted', token: '--color-ink-muted' },
-  { name: 'ink-faint', token: '--color-ink-faint' },
-  { name: 'accent', token: '--color-accent' },
-  { name: 'accent-soft', token: '--color-accent-soft' },
-  { name: 'positive', token: '--color-positive' },
-  { name: 'warning', token: '--color-warning' },
-  { name: 'negative', token: '--color-negative' },
-  { name: 'deep', token: '--color-deep' },
+// ---------------------------------------------------------------------------
+// Editorial copy
+//
+// Explanatory prose about how evaluation programmes work in general. None of
+// it states a figure, a price, a rule value or a term specific to FTMO — those
+// are Facts and live in the firm record, not here.
+// ---------------------------------------------------------------------------
+const stages = [
+  {
+    title: 'Choose an account',
+    summary: 'Pick an account size and start the assessment.',
+    body: [
+      'You are buying an assessment, not capital. The fee covers access to a simulated account with a defined profit target and a defined set of risk limits. A larger account costs more and scales every limit with it — the percentages stay the same, the money at stake does not.',
+      'Check whether the fee is refundable, and under what conditions, before treating it as recoverable.',
+    ],
+  },
+  {
+    title: 'Pass the assessment',
+    summary: 'Reach the objectives while staying inside the trading rules.',
+    body: [
+      'The assessment asks for a percentage gain while you stay inside a daily loss limit and an overall drawdown limit. Every objective applies at once: reaching the target while breaching a limit is still a failed assessment.',
+      'Accounts end on a risk breach far more often than on a failure to reach the target, so the limits deserve more planning than the target does.',
+    ],
+  },
+  {
+    title: 'Trade funded and request payouts',
+    summary: 'Trade under the funded structure and become eligible for payouts.',
+    body: [
+      'A funded account generally carries the same risk framework as the assessment — the rules do not relax once you pass. This is where the profit split applies: you keep an agreed share of the profits you generate.',
+      'Payouts follow a schedule and usually a minimum threshold, and any consistency requirement is assessed at that point. An advertised cycle is the request window; processing time is additional.',
+    ],
+  },
+];
+
+const rules = [
+  {
+    name: 'Maximum drawdown',
+    flag: 'Account-ending',
+    meaning:
+      'A floor under the account. If the balance or equity falls to that level the account is closed, regardless of how much profit was made earlier.',
+    why: 'It sets how many consecutive losses a strategy can absorb: divide the allowance by the risk taken per trade and you have that number exactly. Profits do not automatically buy more room — under a static model the floor never moves, and under a trailing model it rises behind you.',
+  },
+  {
+    name: 'Daily loss limit',
+    flag: 'Account-ending',
+    meaning:
+      'A cap on how much can be lost within one trading day, usually measured against the balance or equity at the start of that day.',
+    why: 'It is the rule most often breached after an early loss turns into revenge trading. The reset time is set by the firm and may not match your local trading day — check it before planning around it.',
+  },
+  {
+    name: 'Profit target and objectives',
+    flag: 'Stage requirement',
+    meaning:
+      'The gain required to complete a stage, plus any requirement to trade on a minimum number of separate days.',
+    why: 'The target and the drawdown allowance together define what the assessment is really asking for — the ratio between them matters more than either number alone. A lower target paired with a tighter limit can be considerably harder, not easier.',
+  },
+  {
+    name: 'News, holding and strategy restrictions',
+    flag: 'Check before trading',
+    meaning:
+      'Restrictions on trading around high-impact news, on holding positions overnight or over a weekend, and on strategies that exploit the simulated environment rather than the market.',
+    why: 'These rules decide whether a strategy is viable here at all, and they are usually enforced at payout review rather than at the moment they are broken. A stop loss does not guarantee an exit price across a gap, and what a platform physically allows is not the rulebook.',
+  },
+  {
+    name: 'Payouts and account conditions',
+    flag: 'Money',
+    meaning:
+      'The share of profits retained by the trader, how often it can be requested, any cap on how much profit may come from a single day, and how long an account may sit inactive.',
+    why: 'The split is the headline number, but the cycle, the threshold and any consistency requirement determine when money actually arrives. Inactivity rules are the quietest way to lose an account you paid for.',
+  },
+];
+
+const goodFit = [
+  'You already trade to fixed risk limits',
+  'You have a defined, tested process',
+  'You want access to a larger account than you would fund yourself',
+  'You can treat the assessment fee as money you may not get back',
+];
+
+const thinkCarefully = [
+  'You prefer discretion over fixed constraints',
+  'Losing the assessment fee would be a problem',
+  'You are expecting a reliable income rather than an opportunity',
+  'Your process is still forming and the same rules can be practised on a demo account at no cost',
+];
+
+const trustPoints = [
+  {
+    text: 'Independent guide, not affiliated with FTMO',
+    path: 'M12 3l7 3v5.5c0 4-3 7.5-7 9.5-4-2-7-5.5-7-9.5V6z',
+  },
+  {
+    text: 'Every figure carries its source and the date it was checked',
+    path: 'M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4',
+  },
+  {
+    text: 'No guaranteed results, no performance claims',
+    path: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16.5v.5',
+  },
+  {
+    text: 'Always verify current terms with the firm itself',
+    path: 'M14 5h5v5M19 5l-8 8M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4',
+  },
+];
+
+const faqs = [
+  {
+    q: 'What is FTMO?',
+    a: 'FTMO is a proprietary trading firm that offers assessment-based access to funded trading accounts. Traders pay a fee for an assessment, trade to a published set of objectives, and — if they meet them — trade a funded account and keep an agreed share of the profits. This site is an independent guide to that model and is not operated by FTMO.',
+  },
+  {
+    q: 'How does the assessment work?',
+    a: 'You choose an account size, complete one or more stages by reaching a profit target without breaching the risk limits, then trade a funded account under the same rules. The exact stages, targets and limits are set by the firm and change over time, so verify the current structure before purchasing.',
+  },
+  {
+    q: 'How much does it cost?',
+    a: 'The fee scales with the account size. No prices are published on this page: a price is a factual claim, and this site publishes none that has not been checked against the firm’s own material and recorded with its source and date. Check the firm’s own pricing, and confirm whether the fee is refundable and under what conditions.',
+  },
+  {
+    q: 'What happens if I fail?',
+    a: 'Typically the account is closed and the assessment ends. Whether a retry, a discount or a free repeat is offered depends on the terms in force. Budget the fee as money you may not get back.',
+  },
+  {
+    q: 'Which rules end the most accounts?',
+    a: 'The daily loss limit and the maximum drawdown. Beyond those, expect requirements around minimum trading days, restricted strategies, trading around high-impact news, and holding positions overnight or over a weekend — all of which vary by programme and change over time. The rules section above explains each in plain language.',
+  },
+  {
+    q: 'How do payouts work?',
+    a: 'Payouts generally follow a schedule and a minimum threshold, with the agreed profit split applied, and any consistency requirement is assessed at that point. An advertised cycle is the request window — add processing time on top.',
+  },
+  {
+    q: 'Is this suitable for beginners?',
+    a: 'An assessment tests an existing process under pressure rather than being a place to build one, and the fee is paid whether or not you pass. If a process is still forming, the same rules can be practised on a demo account at no cost. This is general education, not advice about your situation, and nothing about an assessment or a funded account guarantees income.',
+  },
+  {
+    q: 'Does this site belong to FTMO?',
+    a: 'No. It is an independent guide, not affiliated with, endorsed by or operated by FTMO, and not a support channel — contact the firm directly about an account. Its commercial arrangements and the disclosure that describes them are covered under disclosures below.',
+  },
+];
+
+const guides = [
+  {
+    title: 'Reading a rulebook before you buy',
+    summary: 'Which clauses decide whether a strategy is viable, and where they are usually found.',
+  },
+  {
+    title: 'Sizing a position against a drawdown limit',
+    summary: 'Turning an allowance into a losing streak you can survive, and what that implies for risk per trade.',
+  },
+  {
+    title: 'Why accounts end on risk rules, not targets',
+    summary: 'The failure modes that account for most breaches, and how to plan around each of them.',
+  },
+  {
+    title: 'What a profit split is worth in practice',
+    summary: 'Thresholds, cycles and consistency requirements, and how they shape when money actually arrives.',
+  },
 ];
 ---
 
 <BaseLayout
-  title="Design system — Phase 1C"
-  description="Component showcase for the production design foundation. Not the production site."
+  title="FTMO explained — an independent guide to the evaluation model"
+  description="An independent, educational guide to how FTMO's assessment model works: the stages, the rules that end accounts, and what to consider before buying. Figures are published only once verified against the firm's own material."
   noindex
 >
-  <SiteHeader
-    slot="header"
-    brand="Design system"
-    brandNote="Scaffold"
-    items={navPlaceholder}
-    current="#tokens"
-  >
-    <Button slot="actions" size="sm">Action</Button>
+  {/*
+    `current` is deliberately unset. Every nav item is an in-page anchor, and
+    `aria-current="page"` would tell a screen-reader user that one of them is
+    the page they are already on — which is true of all six, so marking one is
+    misleading. It becomes meaningful once these are separate pages.
+  */}
+  <SiteHeader slot="header" brand="FTMO Guide" brandNote="Independent" items={navItems}>
+    {/*
+      Persistent call to action. It points at the final section rather than
+      outward: no affiliate destination exists, and one is not invented here.
+      The affiliate phase replaces this href and the one in that section.
+    */}
+    <Button slot="actions" size="sm" href="#explore">Explore FTMO</Button>
   </SiteHeader>
 
-  <!-- Intro -->
-  <Section tone="deep" labelledby="intro-title">
+  <!-- ===================================================================
+       HERO
+       =================================================================== -->
+  <Section tone="deep" id="top" labelledby="hero-title">
     <SectionHeading
-      id="intro-title"
+      id="hero-title"
       as="h1"
-      eyebrow="Phase 1C"
-      title="Design system foundation"
-      lede="A development harness for the reusable visual layer: tokens, typography, layout primitives and core components. This is not the production site and contains no FTMO information."
+      eyebrow="Independent guide — not affiliated with FTMO"
+      title="Understand FTMO before you buy."
+      lede="A clear, independent guide to how the assessment model works, the rules that decide most outcomes, and what to weigh up before spending anything."
     />
-    <div class="cluster">
-      <Button variant="primary">Primary action</Button>
-      <Button variant="secondary">Secondary</Button>
-      <Button variant="ghost">Ghost</Button>
+    <div class="cluster hero__actions">
+      <Button href="#how" size="lg">See how it works</Button>
+      <Button href="#rules" size="lg" variant="secondary">Read the rules first</Button>
+    </div>
+    <ul class="hero__notes">
+      <li>Independent guide</li>
+      <li>Affiliate arrangements disclosed</li>
+      <li>Figures published only once verified</li>
+    </ul>
+  </Section>
+
+  <!-- ===================================================================
+       AT A GLANCE — the research fields, filled from verified facts only
+       =================================================================== -->
+  <Section id="glance" labelledby="glance-title" class="glance">
+    <Card variant="highlight" class="glance__card">
+      <div class="glance__head">
+        <div>
+          <h2 id="glance-title" class="glance__title">FTMO at a glance</h2>
+          <p class="glance__note">Structured research fields, not marketing claims.</p>
+        </div>
+        <Badge variant="neutral">No verified values yet</Badge>
+      </div>
+
+      <ResearchFields fields={glanceFields} facts={publishedFacts} />
+
+      <div class="glance__foot">
+        <p>
+          Each field is filled from the firm record once its value has been checked against FTMO’s
+          own published material and recorded with the source, the publisher and the date it was
+          checked. Nothing is shown here before that.
+        </p>
+      </div>
+    </Card>
+  </Section>
+
+  <!-- ===================================================================
+       HOW IT WORKS
+       =================================================================== -->
+  <Section id="how" labelledby="how-title">
+    <SectionHeading
+      id="how-title"
+      eyebrow="How it works"
+      title="The model in three stages"
+      lede="You buy an assessment, trade to a set of objectives, and — if you meet them — trade a funded account under the same rules."
+    />
+
+    <ol class="stages">
+      {
+        stages.map((stage, index) => (
+          <Card as="li" class="stage">
+            <p class="stage__index" aria-hidden="true">
+              {index + 1}
+            </p>
+            <div class="stage__text">
+              <h3 class="stage__title">
+                <span class="visually-hidden">Stage {index + 1}: </span>
+                {stage.title}
+              </h3>
+              <p class="stage__summary">{stage.summary}</p>
+              {stage.body.map((paragraph) => (
+                <p class="stage__body">{paragraph}</p>
+              ))}
+            </div>
+          </Card>
+        ))
+      }
+    </ol>
+  </Section>
+
+  <!-- ===================================================================
+       ACCOUNT EXPLORER — presentation structure only
+       =================================================================== -->
+  <Section id="accounts" tone="alt" labelledby="accounts-title">
+    <SectionHeading
+      id="accounts-title"
+      eyebrow="Accounts"
+      title="Account options explained"
+      lede="How the cost, the objectives and the limits scale with the size of the account. FTMO’s own options only — this site does not rank firms against one another."
+    />
+    <AccountExplorer fields={accountFields} facts={publishedFacts} />
+  </Section>
+
+  <!-- ===================================================================
+       RULES
+       =================================================================== -->
+  <Section id="rules" labelledby="rules-title">
+    <SectionHeading
+      id="rules-title"
+      eyebrow="Rules"
+      title="The rules to understand before buying"
+      lede="Most accounts do not end because of a bad market view — they end on a risk rule. Each panel explains what a rule is for and what it costs you to ignore."
+    />
+
+    <div class="panels">
+      {
+        rules.map((rule) => (
+          <Disclosure title={rule.name} meta={rule.flag}>
+            <p>{rule.meaning}</p>
+            <p class="panel__why">
+              <strong>Why it matters. </strong>
+              {rule.why}
+            </p>
+            <p class="panel__pending">
+              A worked example, with the firm’s current figures, is added to this panel once those
+              figures have been verified.
+            </p>
+          </Disclosure>
+        ))
+      }
     </div>
   </Section>
 
-  <!-- Tokens -->
-  <Section id="tokens" labelledby="tokens-title">
+  <!-- ===================================================================
+       CALCULATOR — position held, behaviour not built
+       =================================================================== -->
+  <Section id="calculator" tone="alt" labelledby="calculator-title">
     <SectionHeading
-      id="tokens-title"
-      eyebrow="Tokens"
-      title="Colour"
-      lede="Every text pair is measured at 4.5:1 or better against the surfaces it is used on. Interactive control borders meet 3:1."
+      id="calculator-title"
+      eyebrow="Calculator"
+      title="Turning percentages into money"
+      lede="A percentage is abstract until it is converted into an amount. This is where that conversion will live."
     />
-    <ul class="swatches grid-auto" style="--grid-min: 9rem;">
+
+    <FeatureStub
+      title="Account and risk calculator"
+      description="Choose an account size and a risk per trade, and see what the profit target, the drawdown allowance and the daily limit amount to in money — including how many consecutive losses the allowance absorbs. It will run entirely in the browser, send nothing anywhere, and take its default values from verified facts rather than from figures typed into a component."
+      headingLevel="h3"
+    >
+      <p class="stub__caveat">
+        Its outputs will be educational examples rather than trading or financial advice.
+      </p>
+    </FeatureStub>
+  </Section>
+
+  <!-- ===================================================================
+       FIT CHECK — advantages and considerations
+       =================================================================== -->
+  <Section id="fit" labelledby="fit-title">
+    <SectionHeading
+      id="fit-title"
+      eyebrow="Fit check"
+      title="Is this model right for you?"
+      lede="The structure suits some ways of trading and fights others. What follows is an educational observation, not a recommendation."
+    />
+
+    <FeatureStub
+      title="Three-question fit check"
+      description="A short set of questions about experience, comfort with fixed risk limits and holding period, returning an observation about where this model is likely to help or to rub. It will answer in the page, store nothing and send nothing."
+      headingLevel="h3"
+    />
+
+    <div class="decide">
+      <Card variant="info">
+        <h3 class="decide__title">
+          <svg
+            class="decide__glyph"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+            fill="none"
+            stroke="var(--color-positive)"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m5 12 5 5L20 7"></path>
+          </svg>
+          A good fit if
+        </h3>
+        <ul class="decide__list">
+          {goodFit.map((item) => <li>{item}</li>)}
+        </ul>
+      </Card>
+
+      <Card variant="info">
+        <h3 class="decide__title">
+          <svg
+            class="decide__glyph"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+            fill="none"
+            stroke="var(--color-warning)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M12 8v5M12 16.5v.5"></path>
+          </svg>
+          Think carefully if
+        </h3>
+        <ul class="decide__list">
+          {thinkCarefully.map((item) => <li>{item}</li>)}
+        </ul>
+      </Card>
+    </div>
+  </Section>
+
+  <!-- ===================================================================
+       METHODOLOGY / TRUST
+       =================================================================== -->
+  <Section id="methodology" tone="alt" labelledby="methodology-title">
+    <SectionHeading
+      id="methodology-title"
+      eyebrow="Methodology"
+      title="How this site handles information"
+      lede="What separates something published here as fact from something the author remembers being true."
+    />
+
+    <div class="methodology">
+      <Card>
+        <h3>What gets published</h3>
+        <p>
+          A figure is published only when it has been read on the firm’s own page and recorded
+          together with that page’s address, its publisher and the date it was checked. A value
+          without a source is not a fact and does not appear.
+        </p>
+      </Card>
+      <Card>
+        <h3>What happens as it ages</h3>
+        <p>
+          Terms change. A recorded value is reported for re-checking once it passes a set age, and
+          stops being publishable once it passes a further one. Expiry is enforced by the build
+          rather than left to memory.
+        </p>
+      </Card>
+      <Card>
+        <h3>What this site is not</h3>
+        <p>
+          It is not affiliated with FTMO, not a support channel, and not a source of financial
+          advice. It ranks nothing and guarantees nothing. Before spending anything, verify the
+          current terms with the firm directly.
+        </p>
+      </Card>
+    </div>
+
+    <ul class="trust">
       {
-        swatches.map((swatch) => (
-          <li class="swatch">
-            <span class="swatch__chip" style={`background: var(${swatch.token})`} />
-            <span class="swatch__name">{swatch.name}</span>
+        trustPoints.map((point) => (
+          <li class="trust__item">
+            <svg
+              class="trust__glyph"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d={point.path} />
+            </svg>
+            {point.text}
           </li>
         ))
       }
     </ul>
   </Section>
 
-  <!-- Typography -->
-  <Section id="type" tone="alt" labelledby="type-title">
-    <SectionHeading
-      id="type-title"
-      eyebrow="Tokens"
-      title="Typography"
-      lede="A serif display face paired with a system sans, using faces already on the device — no external font request."
-    />
-    <div class="stack" style="--stack-gap: var(--space-4);">
-      {/* Specimens use classes, not heading elements: appearance must not
-          invent structure in the document outline. */}
-      <p class="type-display">Display heading, fluid to viewport</p>
-      <p class="type-h2">Section heading</p>
-      <p class="type-h3">Subsection heading</p>
-      <p class="prose" style="max-width: 62ch;">
-        Body copy sits at fifteen pixels with a 1.55 line height. Measure is capped so lines stay
-        readable on wide screens, and long words break rather than forcing the page to scroll
-        sideways on narrow ones.
-      </p>
-      <p class="meta">Metadata and captions use the muted tier.</p>
-      <p class="faint">The faint tier is the quietest text on the page and still meets AA.</p>
+  <!-- ===================================================================
+       FAQ
+       =================================================================== -->
+  <Section id="faq" labelledby="faq-title">
+    <SectionHeading id="faq-title" eyebrow="FAQ" title="Common questions" />
+    <div class="panels">
+      {faqs.map((faq) => <Disclosure title={faq.q}>{faq.a}</Disclosure>)}
     </div>
   </Section>
 
-  <!-- Buttons -->
-  <Section id="buttons" labelledby="buttons-title">
+  <!-- ===================================================================
+       GUIDES
+       =================================================================== -->
+  <Section id="guides" tone="alt" labelledby="guides-title">
     <SectionHeading
-      id="buttons-title"
-      eyebrow="Components"
-      title="Buttons"
-      lede="An anchor is rendered when a destination is given, a button otherwise — the element always matches the behaviour."
+      id="guides-title"
+      eyebrow="Guides"
+      title="Going deeper"
+      lede="Longer pieces on the parts of the model that decide outcomes. These are written and published in a later phase; the titles below are planned, not live."
     />
-    <div class="stack" style="--stack-gap: var(--space-5);">
-      <div class="cluster">
-        <Button variant="primary">Primary</Button>
-        <Button variant="secondary">Secondary</Button>
-        <Button variant="ghost">Ghost</Button>
-        <Button variant="subtle">Subtle link</Button>
-      </div>
-      <div class="cluster">
-        <Button size="sm">Small</Button>
-        <Button size="md">Medium</Button>
-        <Button size="lg">Large</Button>
-      </div>
-      <div class="cluster">
-        <Button disabled>Disabled button</Button>
-        <Button href="#buttons" variant="secondary">Link styled as button</Button>
-      </div>
-    </div>
-  </Section>
 
-  <!-- Cards -->
-  <Section id="cards" tone="alt" labelledby="cards-title">
-    <SectionHeading
-      id="cards-title"
-      eyebrow="Components"
-      title="Cards"
-      lede="Border, fill and elevation are spent by role rather than stamped on every block, so emphasis still means something."
-    />
-    <ul class="grid-auto" style="--grid-min: 15rem;">
-      <Card as="li">
-        <h3>Standard</h3>
-        <p class="meta">The default container for most content.</p>
-      </Card>
-      <Card as="li" variant="highlight">
-        <h3>Highlighted</h3>
-        <p class="meta">Accent border, no colour fill. For the one thing that matters most.</p>
-      </Card>
-      <Card as="li" variant="info">
-        <h3>Informational</h3>
-        <p class="meta">Quieter, for supporting or explanatory content.</p>
-      </Card>
-      <Card as="li" interactive>
-        <h3>Interactive</h3>
-        <p class="meta">Lifts on hover and on keyboard focus within.</p>
-      </Card>
+    <ul class="guides">
+      {
+        guides.map((guide) => (
+          <Card as="li" variant="info" class="guide">
+            <p class="guide__flag">Planned</p>
+            <h3 class="guide__title">{guide.title}</h3>
+            <p class="guide__summary">{guide.summary}</p>
+          </Card>
+        ))
+      }
     </ul>
   </Section>
 
-  <!-- Badges -->
-  <Section id="badges" labelledby="badges-title">
-    <SectionHeading
-      id="badges-title"
-      eyebrow="Components"
-      title="Badges"
-      lede="Each variant carries a distinct glyph as well as a colour, so meaning survives greyscale and colour-blindness."
-    />
-    <div class="cluster">
-      <Badge variant="neutral">Neutral</Badge>
-      <Badge variant="success">Success</Badge>
-      <Badge variant="warning">Warning</Badge>
-      <Badge variant="error">Error</Badge>
-      <Badge variant="info">Information</Badge>
+  <!-- ===================================================================
+       FINAL CALL TO ACTION
+
+       The outbound destination is the affiliate phase's decision, not this
+       one's. No URL is invented here, and no click is tracked. The same phase
+       owns the `?source=meta` landing variant: it changes what this section
+       says, so it attaches here rather than anywhere earlier in the page.
+       =================================================================== -->
+  <Section tone="deep" id="explore" labelledby="explore-title">
+    <div class="explore">
+      <h2 id="explore-title">Ready to look at FTMO itself?</h2>
+      <p class="explore__body">
+        You have seen how the assessment works, which rules decide most outcomes, and what to
+        weigh up first. The next step is FTMO’s own material — read the current terms there before
+        spending anything.
+      </p>
+      <p class="explore__pending">
+        The outbound link is added once an approved destination and its disclosure wording exist.
+        Nothing on this page links out, and nothing here is tracked.
+      </p>
     </div>
-    <p class="meta" style="margin-top: var(--space-4);">
-      Badges are presentational. They must never be used to imply verification or trust that has
-      not actually been established.
-    </p>
+  </Section>
+
+  <!-- ===================================================================
+       DISCLOSURES — structure only; wording belongs to the compliance phase
+       =================================================================== -->
+  <Section id="disclosures" labelledby="disclosures-title" class="disclosures">
+    <h2 id="disclosures-title" class="visually-hidden">Disclosures</h2>
+    <div class="disclosures__grid">
+      <div>
+        <h3 class="disclosures__title">Affiliate disclosure</h3>
+        <p class="disclosures__body">
+          Placeholder. This page contains no affiliate links and no tracking. The disclosure that
+          will sit here — what the arrangement is, where it applies and how it is marked — is
+          written and reviewed in the compliance phase.
+        </p>
+      </div>
+      <div>
+        <h3 class="disclosures__title">Risk disclaimer</h3>
+        <p class="disclosures__body">
+          Placeholder. This site publishes educational and informational content, not financial,
+          investment, legal or tax advice. The reviewed wording, including its statements about
+          risk and past performance, is added in the compliance phase.
+        </p>
+      </div>
+    </div>
   </Section>
 
   <SiteFooter
     slot="footer"
-    brand="Design system"
-    summary="Component showcase for the production design foundation."
-    groups={footerPlaceholder}
-    legal="Placeholder structural text. Legal wording, disclosures and company information are content decisions handled in a later phase and are deliberately absent here."
+    brand="FTMO Guide"
+    summary="Independent FTMO information and education. Not affiliated with FTMO."
+    groups={footerGroups}
+    legal="Placeholder footer text. Company details, legal wording and disclosures are written in the compliance phase and are deliberately absent here. FTMO is a trademark of its owner and is referred to on this site for identification only."
   >
-    <Badge slot="status" variant="neutral">Scaffold — not the production site</Badge>
+    <Badge slot="status" variant="neutral">Pre-release — no verified figures</Badge>
   </SiteFooter>
 </BaseLayout>
 
 <style>
-  .swatches {
-    list-style: none;
+  /* Hero ------------------------------------------------------------ */
+  .hero__actions {
+    margin-top: var(--space-6);
   }
 
-  .swatch {
+  .hero__notes {
     display: flex;
-    align-items: center;
-    gap: var(--space-3);
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin-top: var(--space-6);
     font-size: var(--text-sm);
+    color: var(--color-on-deep-muted);
   }
 
-  .swatch__chip {
+  /*
+   * A separator that is decoration only, so it is not announced. It is only
+   * meaningful while the items share a line: once they stack it would read as
+   * a bullet on an indented list, so it is dropped at the wrap point.
+   */
+  @media (min-width: 40.0625rem) {
+    .hero__notes li + li::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 3px;
+      margin-right: var(--space-5);
+      border-radius: 50%;
+      background: currentColor;
+      vertical-align: middle;
+      opacity: 0.6;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .hero__notes {
+      gap: var(--space-1) var(--space-5);
+    }
+  }
+
+  /* At a glance ------------------------------------------------------ */
+  /*
+   * These two selectors are global because they style elements rendered by
+   * Section and Card. Astro scopes a component's styles to the elements in its
+   * own template, and a class passed down as a prop does not carry the parent's
+   * scope, so a scoped rule would never match. The names are unique to this
+   * page, and both rules are overrides of a primitive rather than new styling.
+   */
+  /* The card overlaps the dark band above it, as in the V2 reference. */
+  :global(.glance) {
+    padding-top: 0;
+    margin-top: calc(var(--space-7) * -1);
+  }
+
+  :global(.glance__card) {
+    background: var(--color-surface);
+    box-shadow: var(--shadow-2);
+  }
+
+  .glance__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  .glance__title {
+    font-size: var(--text-xl);
+  }
+
+  .glance__note {
+    margin-top: var(--space-1);
+    font-size: var(--text-sm);
+    color: var(--color-ink-muted);
+  }
+
+  /* The rule spans the card; the measure is capped on the text inside it. */
+  .glance__foot {
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .glance__foot p {
+    max-width: 78ch;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+  }
+
+  /* Stages ----------------------------------------------------------- */
+  .stages {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  }
+
+  .stages > :global(.stage) {
+    display: flex;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .stage__index {
+    flex: none;
+    display: grid;
+    place-items: center;
     width: 2rem;
     height: 2rem;
-    flex: none;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: 600;
   }
 
-  .swatch__name {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-    color: var(--color-ink-muted);
+  .stage__text {
+    min-width: 0;
   }
 
-  .meta {
+  .stage__title {
+    font-size: var(--text-h3);
+  }
+
+  .stage__summary {
+    margin-top: var(--space-2);
     font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-ink-secondary);
+  }
+
+  .stage__body {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
     color: var(--color-ink-muted);
   }
 
-  .faint {
+  /* Expandable panels (rules, FAQ) ----------------------------------- */
+  /* Spacing between adjacent panels is owned by Disclosure itself. */
+  .panel__why {
+    margin-top: var(--space-3);
+  }
+
+  .panel__pending {
+    margin-top: var(--space-3);
     font-size: var(--text-sm);
     color: var(--color-ink-faint);
   }
 
-  h3 + .meta {
+  /* Calculator stub -------------------------------------------------- */
+  .stub__caveat {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    color: var(--color-ink-faint);
+  }
+
+  /* Fit check -------------------------------------------------------- */
+  .decide {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
+  }
+
+  .decide__title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-md);
+    font-weight: 600;
+  }
+
+  .decide__glyph {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+  }
+
+  .decide__list {
+    margin-top: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-secondary);
+  }
+
+  .decide__list li {
+    padding-left: var(--space-4);
+    border-left: 2px solid var(--color-border);
+  }
+
+  /* Methodology ------------------------------------------------------ */
+  .methodology {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+    margin-bottom: var(--space-6);
+  }
+
+  .methodology p {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+  }
+
+  .trust {
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .trust__item {
+    display: flex;
+    align-items: start;
+    gap: var(--space-3);
+    min-width: 0;
+    font-size: var(--text-sm);
+    line-height: var(--leading-snug);
+    color: var(--color-ink-secondary);
+  }
+
+  .trust__glyph {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    margin-top: 0.15rem;
+    color: var(--color-accent);
+  }
+
+  /* Guides ----------------------------------------------------------- */
+  .guides {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  }
+
+  .guides > :global(.guide) {
+    min-width: 0;
+  }
+
+  .guide__flag {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  .guide__title {
     margin-top: var(--space-2);
+    font-size: var(--text-h3);
+  }
+
+  .guide__summary {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+  }
+
+  /* Final call to action --------------------------------------------- */
+  .explore {
+    max-width: 60ch;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .explore__body {
+    margin-top: var(--space-4);
+    font-size: var(--text-md);
+    line-height: var(--leading-relaxed);
+    color: var(--color-on-deep-muted);
+  }
+
+  .explore__pending {
+    display: inline-block;
+    margin-top: var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    border: 1px dashed var(--color-deep-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--color-on-deep-muted);
+  }
+
+  /* Disclosures ------------------------------------------------------ */
+  /* Global for the same reason as `.glance`: it overrides a Section element. */
+  :global(.disclosures) {
+    padding-block: var(--space-6);
+  }
+
+  .disclosures__grid {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .disclosures__title {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-ink-secondary);
+  }
+
+  .disclosures__body {
+    margin-top: var(--space-3);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
   }
 </style>

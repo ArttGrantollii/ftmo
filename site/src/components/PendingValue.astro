@@ -1,0 +1,74 @@
+---
+/**
+ * Marker for a factual value that has not been verified yet.
+ *
+ * The site publishes no figure that has not been checked against a named
+ * source on a recorded date (see `docs/CONTENT.md`). Until a value exists in
+ * the firm record as a `verified` Fact, the slot it will occupy renders this
+ * marker instead of a number.
+ *
+ * It is deliberately styled so it can never be mistaken for a real value:
+ * dashed outline, muted colour, and the words spelled out in text rather than
+ * carried by colour alone. It is not a "loading" state and not a demo figure —
+ * it says the value does not exist yet.
+ */
+interface Props {
+  /** What is missing, e.g. "profit target". Used for the accessible name. */
+  label?: string;
+  class?: string;
+}
+
+const { label, class: className } = Astro.props;
+---
+
+<span class:list={['pending', className]}>
+  <svg
+    class="pending__glyph"
+    viewBox="0 0 16 16"
+    aria-hidden="true"
+    focusable="false"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <circle cx="8" cy="8" r="6.2" stroke-dasharray="2.4 2.2" />
+    <path d="M8 5.2v3.4M8 10.6v.01" />
+  </svg>
+  <span
+    >Not verified yet{label && <span class="visually-hidden">: {label}</span>}</span
+  >
+</span>
+
+<style>
+  .pending {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0.1rem var(--space-2);
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-xs);
+    background: var(--color-sunk);
+    color: var(--color-ink-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.5;
+    /* Never inherits a heading's display face — it must not read as a value. */
+    text-transform: none;
+  }
+
+  .pending__glyph {
+    width: 0.8125rem;
+    height: 0.8125rem;
+    flex: none;
+  }
+
+  :global(.on-deep) .pending {
+    border-color: var(--color-deep-border);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-on-deep-muted);
+  }
+</style>

@@ -1,0 +1,157 @@
+---
+/**
+ * Expandable panel built on native `<details>` / `<summary>`.
+ *
+ * Zero JavaScript. The browser supplies the open/closed state, the keyboard
+ * behaviour and the announcement to assistive technology — all three are the
+ * usual casualties of a hand-rolled accordion. The content is in the document
+ * whether or not it is expanded, so it is present for search engines and for
+ * readers without script.
+ *
+ * `headingLevel` exists so the title takes its level from the document
+ * structure rather than from how the panel happens to look. `<summary>` may
+ * contain one heading element, so the outline stays intact.
+ */
+interface Props {
+  title: string;
+  /** Small qualifier shown beside the title, e.g. a category. */
+  meta?: string;
+  headingLevel?: 'h2' | 'h3' | 'h4';
+  /** Open on load. Use sparingly — usually only the first item, if at all. */
+  open?: boolean;
+  class?: string;
+}
+
+const {
+  title,
+  meta,
+  headingLevel: Heading = 'h3',
+  open = false,
+  class: className,
+}: Props = Astro.props;
+---
+
+<details class:list={['disclosure', className]} open={open}>
+  <summary class="disclosure__summary">
+    <Heading class="disclosure__title">{title}</Heading>
+    {meta && <span class="disclosure__meta">{meta}</span>}
+    <svg
+      class="disclosure__chevron"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="m6 9 6 6 6-6"></path>
+    </svg>
+  </summary>
+  <div class="disclosure__body">
+    <slot />
+  </div>
+</details>
+
+<style>
+  .disclosure {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .disclosure + :global(.disclosure) {
+    margin-top: var(--space-3);
+  }
+
+  .disclosure__summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    cursor: pointer;
+    list-style: none;
+    /* Comfortable target on touch screens. */
+    min-height: 3rem;
+  }
+
+  /* Remove the default disclosure triangle across engines. */
+  .disclosure__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .disclosure__summary:hover {
+    background: var(--color-surface-alt);
+  }
+
+  .disclosure__title {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--text-md);
+    font-weight: 600;
+  }
+
+  .disclosure__meta {
+    flex: none;
+    padding: 0.1rem var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xs);
+    background: var(--color-sunk);
+    color: var(--color-ink-muted);
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .disclosure__chevron {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex: none;
+    color: var(--color-ink-muted);
+    transition: transform var(--duration) var(--ease);
+  }
+
+  .disclosure[open] .disclosure__chevron {
+    transform: rotate(180deg);
+  }
+
+  .disclosure[open] .disclosure__summary {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .disclosure__body {
+    padding: var(--space-4) var(--space-5) var(--space-5);
+    color: var(--color-ink-secondary);
+    line-height: var(--leading-relaxed);
+  }
+
+  @media (max-width: 40rem) {
+    .disclosure__summary {
+      padding: var(--space-3) var(--space-4);
+      /* The qualifier wraps under the title rather than squeezing it. */
+      flex-wrap: wrap;
+    }
+
+    .disclosure__title {
+      flex: 1 1 auto;
+      order: 1;
+    }
+
+    .disclosure__chevron {
+      order: 2;
+    }
+
+    /* The qualifier drops to its own line rather than squeezing the title. */
+    .disclosure__meta {
+      flex: 0 0 auto;
+      order: 3;
+      margin-top: calc(var(--space-1) * -1);
+    }
+
+    .disclosure__body {
+      padding: var(--space-4);
+    }
+  }
+</style>

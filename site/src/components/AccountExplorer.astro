@@ -1,0 +1,92 @@
+---
+import FeatureStub from './FeatureStub.astro';
+import ResearchFields from './ResearchFields.astro';
+import type { ResearchField } from './ResearchFields.astro';
+import type { DisplayFact } from '../lib/content/facts';
+
+/**
+ * Account explorer — presentation structure only.
+ *
+ * The V2 prototype pairs a list of account sizes with a panel showing how the
+ * cost, objectives and limits scale with the size chosen. Both halves are
+ * built from figures: account sizes, fees, targets and limits. None of those
+ * have been verified, so none of them appear here.
+ *
+ * What Phase 2A migrates is the two-column relationship — chooser beside
+ * detail panel — and the set of fields the panel will report. The chooser is
+ * held by a stub because a list of account sizes *is* the data; the panel
+ * renders its fields through the Fact architecture and so already shows the
+ * shape a verified account will take.
+ *
+ * Selection behaviour belongs to a later phase. When it arrives it replaces
+ * the stub and re-renders `fields` against the selected account's facts; the
+ * panel itself needs no change.
+ */
+interface Props {
+  fields: ResearchField[];
+  facts?: ReadonlyMap<string, DisplayFact>;
+  class?: string;
+}
+
+const { fields, facts, class: className }: Props = Astro.props;
+---
+
+<div class:list={['explorer', className]}>
+  <div class="explorer__chooser">
+    <FeatureStub
+      title="Account size chooser"
+      description="Account sizes and their fees are factual values about the firm. They are published here once each has been checked against the firm's own material and recorded with its source and date."
+    />
+  </div>
+
+  <div class="explorer__panel">
+    <h3 class="explorer__panel-title">What scales with the account size</h3>
+    <p class="explorer__panel-note">
+      Every field below is defined as a proportion of the account size, so the percentages stay
+      the same while the money at stake does not.
+    </p>
+    <ResearchFields fields={fields} facts={facts} minColumn="11rem" />
+  </div>
+</div>
+
+<style>
+  .explorer {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .explorer__panel {
+    min-width: 0;
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-1);
+  }
+
+  .explorer__panel-title {
+    font-size: var(--text-h3);
+  }
+
+  .explorer__panel-note {
+    margin: var(--space-2) 0 var(--space-5);
+    max-width: 60ch;
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+  }
+
+  @media (max-width: 60rem) {
+    .explorer {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .explorer__panel {
+      padding: var(--space-4);
+    }
+  }
+</style>
