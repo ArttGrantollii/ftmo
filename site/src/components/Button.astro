@@ -1,0 +1,195 @@
+---
+/**
+ * Button and button-styled link.
+ *
+ * Renders an `<a>` when `href` is given and a `<button>` otherwise, so the
+ * element always matches the behaviour: links navigate, buttons act. Styling
+ * never decides the element.
+ *
+ * Purely presentational — no affiliate, tracking or analytics behaviour.
+ */
+interface Props {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'subtle';
+  size?: 'sm' | 'md' | 'lg';
+  /** Present -> renders a link. */
+  href?: string;
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
+  /** Full-width, for narrow layouts. */
+  block?: boolean;
+  /** Required when the label is not descriptive on its own. */
+  'aria-label'?: string;
+  class?: string;
+  rel?: string;
+  target?: string;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  href,
+  type = 'button',
+  disabled = false,
+  block = false,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const classes = [
+  'btn',
+  `btn--${variant}`,
+  `btn--${size}`,
+  block && 'btn--block',
+  className,
+];
+
+// A link cannot be natively disabled. Drop the href so it is not
+// focusable-as-a-link, and mark it for assistive technology.
+const isDisabledLink = Boolean(href) && disabled;
+---
+
+{
+  href ? (
+    <a
+      class:list={classes}
+      href={isDisabledLink ? undefined : href}
+      aria-disabled={disabled ? 'true' : undefined}
+      role={isDisabledLink ? 'link' : undefined}
+      {...rest}
+    >
+      <slot />
+    </a>
+  ) : (
+    <button class:list={classes} type={type} disabled={disabled} {...rest}>
+      <slot />
+    </button>
+  )
+}
+
+<style>
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: var(--control-height);
+    padding-inline: var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color var(--duration) var(--ease),
+      border-color var(--duration) var(--ease),
+      color var(--duration) var(--ease);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  /* Sizes */
+  .btn--sm {
+    height: var(--control-height-sm);
+    padding-inline: var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .btn--lg {
+    height: var(--control-height-lg);
+    padding-inline: var(--space-5);
+    font-size: var(--text-md);
+  }
+
+  .btn--block {
+    display: flex;
+    width: 100%;
+  }
+
+  /* Variants */
+  .btn--primary {
+    background: var(--color-accent);
+    color: #fff;
+    box-shadow: var(--shadow-1);
+  }
+
+  .btn--primary:hover {
+    background: var(--color-accent-hover);
+    color: #fff;
+  }
+
+  .btn--secondary {
+    background: var(--color-surface);
+    border-color: var(--color-border-strong);
+    color: var(--color-ink);
+  }
+
+  .btn--secondary:hover {
+    background: var(--color-surface-alt);
+    color: var(--color-ink);
+  }
+
+  .btn--ghost {
+    color: var(--color-ink-secondary);
+  }
+
+  .btn--ghost:hover {
+    background: rgba(19, 23, 28, 0.05);
+    color: var(--color-ink);
+  }
+
+  .btn--subtle {
+    height: auto;
+    padding: 0;
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .btn--subtle:hover {
+    color: var(--color-accent-hover);
+  }
+
+  /* Disabled — both the native and the link form */
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+  }
+
+  /* On the dark band, secondary and ghost need light treatments. */
+  :global(.on-deep) .btn--secondary {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #fff;
+  }
+
+  :global(.on-deep) .btn--secondary:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  :global(.on-deep) .btn--ghost {
+    color: var(--color-on-deep);
+  }
+
+  :global(.on-deep) .btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  /* Comfortable targets on touch screens. */
+  @media (max-width: 40rem) {
+    .btn--md,
+    .btn--lg {
+      width: 100%;
+    }
+  }
+</style>

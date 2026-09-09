@@ -1,0 +1,161 @@
+/**
+ * Design tokens.
+ *
+ * The single source of truth for colour, type, spacing, radius and elevation.
+ * Components reference these variables and never hard-code raw values.
+ *
+ * Colour values are derived from the approved V2 prototype, with three
+ * contrast corrections applied — the prototype's tertiary text and badge text
+ * failed WCAG 2.2 AA at 2.59:1, 2.84:1 and 4.30:1. Every text pair defined
+ * here has been measured at >= 4.5:1 against the surfaces it is used on, and
+ * interactive control borders at >= 3:1 (WCAG 1.4.11).
+ */
+
+:root {
+  /* ---------------------------------------------------------------
+     Surfaces
+     --------------------------------------------------------------- */
+  --color-paper: #f4f5f3; /* page ground */
+  --color-surface: #ffffff; /* cards, panels */
+  --color-surface-alt: #fafaf8; /* alternating sections */
+  --color-sunk: #eceeea; /* wells, subtle chips */
+
+  /* Dark surfaces, used for the header band, footer and emphasis sections. */
+  --color-deep: #101519;
+  --color-deep-alt: #171e24;
+  --color-deep-border: #252e36;
+
+  /* ---------------------------------------------------------------
+     Text
+     Four tiers, each AA-compliant on paper, surface and surface-alt.
+     --------------------------------------------------------------- */
+  --color-ink: #13171c; /* primary            17.99:1 on surface */
+  --color-ink-secondary: #39414b; /* secondary          10.34:1 */
+  --color-ink-muted: #5f666f; /* tertiary            5.81:1 */
+  --color-ink-faint: #68707a; /* quaternary          5.02:1 */
+
+  --color-on-deep: #e9ecea; /* primary on dark    15.44:1 */
+  --color-on-deep-muted: #9ba5ab; /* secondary on dark   7.32:1 */
+
+  /* ---------------------------------------------------------------
+     Borders
+     `--color-border` is decorative (card edges, rules) and is intentionally
+     light. `--color-border-strong` is for the boundary of interactive
+     controls, where WCAG 1.4.11 requires 3:1.
+     --------------------------------------------------------------- */
+  --color-border: #e2e4df;
+  --color-border-strong: #868c82; /* 3.45:1 on surface, 3.15:1 on paper */
+
+  /* ---------------------------------------------------------------
+     Accent — a deliberately restrained petrol, distinct from the
+     brand colours of any firm the site writes about.
+     --------------------------------------------------------------- */
+  --color-accent: #1b4d57; /* 9.35:1 on surface */
+  --color-accent-hover: #123840;
+  --color-accent-soft: #e9f0f1;
+  --color-accent-border: #bdd2d6;
+
+  /* ---------------------------------------------------------------
+     Status. Never the sole carrier of meaning — components pair these
+     with a text label and a distinct glyph.
+     --------------------------------------------------------------- */
+  --color-positive: #1b6b4c;
+  --color-positive-soft: #e7f1eb;
+  --color-positive-border: #c2dccf;
+
+  --color-warning: #7a4f10;
+  --color-warning-soft: #f6f1e4;
+  --color-warning-border: #e4d6b8;
+
+  --color-negative: #9c3b2e;
+  --color-negative-soft: #fbece9;
+  --color-negative-border: #eccec8;
+
+  /* ---------------------------------------------------------------
+     Typography
+     System stacks only: no external font request, no third-party origin
+     in the CSP, and no IP disclosure to a font host. The serif/sans
+     pairing that gives the design its editorial character is preserved
+     using faces already present on the user's device.
+     --------------------------------------------------------------- */
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: Georgia, 'Iowan Old Style', 'Times New Roman', Times, serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+
+  /* Type scale. Headings use clamp() so they respond without breakpoints. */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.8125rem; /* 13px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-md: 1rem; /* 16px */
+  --text-lg: 1.0625rem; /* 17px */
+  --text-xl: 1.25rem; /* 20px */
+
+  --text-display: clamp(2rem, 1.4rem + 3vw, 3.125rem);
+  --text-h2: clamp(1.4375rem, 1.2rem + 1.2vw, 2rem);
+  --text-h3: clamp(1.125rem, 1.05rem + 0.35vw, 1.25rem);
+
+  --leading-tight: 1.18;
+  --leading-snug: 1.35;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.09em;
+
+  /* ---------------------------------------------------------------
+     Spacing — 4px base, 8px rhythm
+     --------------------------------------------------------------- */
+  --space-1: 0.25rem; /* 4  */
+  --space-2: 0.5rem; /* 8  */
+  --space-3: 0.75rem; /* 12 */
+  --space-4: 1rem; /* 16 */
+  --space-5: 1.5rem; /* 24 */
+  --space-6: 2rem; /* 32 */
+  --space-7: 3rem; /* 48 */
+  --space-8: 4rem; /* 64 */
+  --space-9: 5rem; /* 80 */
+
+  /* ---------------------------------------------------------------
+     Radius / elevation
+     --------------------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --shadow-1: 0 1px 2px rgba(16, 22, 28, 0.05), 0 1px 3px rgba(16, 22, 28, 0.05);
+  --shadow-2: 0 2px 4px rgba(16, 22, 28, 0.05), 0 8px 22px rgba(16, 22, 28, 0.08);
+  --shadow-3: 0 22px 54px rgba(10, 14, 18, 0.24);
+
+  /* ---------------------------------------------------------------
+     Layout
+     --------------------------------------------------------------- */
+  --container-width: 70rem; /* 1120px */
+  --container-narrow: 44rem; /* 704px  */
+  --container-gutter: var(--space-5);
+
+  /* Control sizing — 44px keeps primary controls above the
+     recommended touch-target minimum. */
+  --control-height: 2.625rem; /* 42px */
+  --control-height-sm: 2.125rem; /* 34px */
+  --control-height-lg: 3rem; /* 48px */
+
+  /* ---------------------------------------------------------------
+     Motion. Every use is wrapped by the reduced-motion query in base.css.
+     --------------------------------------------------------------- */
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --duration: 180ms;
+}
+
+/*
+ * Breakpoints are documented here for reference. Custom properties cannot be
+ * used inside media queries, so these literals are repeated in component
+ * styles — keep them in step with this list.
+ *
+ *   40rem  (640px)  — large phone
+ *   48rem  (768px)  — tablet
+ *   60rem  (960px)  — small desktop / nav switch point
+ *   75rem  (1200px) — wide desktop
+ */

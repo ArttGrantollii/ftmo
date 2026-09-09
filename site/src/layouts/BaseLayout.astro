@@ -1,45 +1,59 @@
 ---
-// Minimal Phase 1A layout.
-// Deliberately unstyled beyond the bare minimum: the real design system
-// (tokens, typography, components) is ported from the V2 prototype in a later phase.
+import '../styles/tokens.css';
+import '../styles/base.css';
+
+/**
+ * Document shell.
+ *
+ * Provides the head, the skip link, the `main` landmark and slots for the
+ * header and footer. Page chrome is composed by the page rather than assumed
+ * here, so this layout stays usable for pages that need a different frame.
+ */
 interface Props {
   title: string;
   description?: string;
+  /** Prevent indexing. Removed for real pages in the SEO phase. */
+  noindex?: boolean;
+  lang?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, noindex = false, lang = 'en' } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
-    <!-- Scaffold only: not a public site yet. -->
-    <meta name="robots" content="noindex, nofollow" />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <slot name="head" />
   </head>
   <body>
-    <slot />
+    <a class="skip-link" href="#main">Skip to content</a>
+    <slot name="header" />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <slot name="footer" />
   </body>
 </html>
 
 <style is:global>
-  :root {
-    color-scheme: light;
-    font-family:
-      system-ui,
-      -apple-system,
-      'Segoe UI',
-      sans-serif;
+  /* Footer sits at the bottom on short pages without absolute positioning. */
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
   }
 
-  body {
-    margin: 0;
-    padding: 2rem 1.5rem;
-    background: #f4f5f3;
-    color: #13171c;
-    line-height: 1.55;
+  main {
+    flex: 1;
+  }
+
+  /* The skip link moves focus here; it must not draw a focus ring itself. */
+  main:focus {
+    outline: none;
   }
 </style>

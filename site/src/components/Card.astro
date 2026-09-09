@@ -1,0 +1,80 @@
+---
+/**
+ * Content container.
+ *
+ * `default`   — standard panel
+ * `highlight` — draws attention with the accent border, no colour fill
+ * `info`      — quieter, for supporting or explanatory content
+ *
+ * Border, fill and elevation are spent by role rather than applied to every
+ * block, so emphasis still means something.
+ */
+interface Props {
+  variant?: 'default' | 'highlight' | 'info';
+  /** Adds a hover lift. Only for cards that are themselves interactive. */
+  interactive?: boolean;
+  as?: 'div' | 'article' | 'li' | 'section';
+  class?: string;
+}
+
+const {
+  variant = 'default',
+  interactive = false,
+  as: Tag = 'div',
+  class: className,
+}: Props = Astro.props;
+---
+
+<Tag
+  class:list={[
+    'card',
+    `card--${variant}`,
+    interactive && 'card--interactive',
+    className,
+  ]}
+>
+  <slot />
+</Tag>
+
+<style>
+  .card {
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .card--highlight {
+    border-color: var(--color-accent-border);
+    box-shadow: var(--shadow-1);
+  }
+
+  .card--info {
+    background: var(--color-surface-alt);
+  }
+
+  .card--interactive {
+    transition:
+      border-color var(--duration) var(--ease),
+      box-shadow var(--duration) var(--ease),
+      transform var(--duration) var(--ease);
+  }
+
+  .card--interactive:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-2px);
+  }
+
+  /* Keep the lift visible for keyboard users too. */
+  .card--interactive:focus-within {
+    border-color: var(--color-accent-border);
+    box-shadow: var(--shadow-2);
+  }
+
+  @media (max-width: 40rem) {
+    .card {
+      padding: var(--space-4);
+    }
+  }
+</style>

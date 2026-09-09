@@ -1,0 +1,74 @@
+---
+/**
+ * The eyebrow / heading / lede trio used at the top of most sections.
+ *
+ * `as` exists so heading level follows document structure rather than
+ * appearance — a section heading is usually h2, but the component must not
+ * assume it.
+ */
+interface Props {
+  /** Small uppercase kicker above the heading. */
+  eyebrow?: string;
+  title: string;
+  /** Short introductory sentence below the heading. */
+  lede?: string;
+  as?: 'h1' | 'h2' | 'h3';
+  align?: 'start' | 'center';
+  /** Set when a Section uses aria-labelledby to point at this heading. */
+  id?: string;
+  class?: string;
+}
+
+const {
+  eyebrow,
+  title,
+  lede,
+  as: Heading = 'h2',
+  align = 'start',
+  id,
+  class: className,
+}: Props = Astro.props;
+---
+
+<div class:list={['heading', `heading--${align}`, className]}>
+  {eyebrow && <p class="heading__eyebrow">{eyebrow}</p>}
+  <Heading class="heading__title" id={id}>{title}</Heading>
+  {lede && <p class="heading__lede">{lede}</p>}
+</div>
+
+<style>
+  .heading {
+    max-width: 62ch;
+    margin-bottom: var(--space-6);
+  }
+
+  .heading--center {
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .heading__eyebrow {
+    margin-bottom: var(--space-3);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .heading__lede {
+    margin-top: var(--space-3);
+    font-size: var(--text-md);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
+  }
+
+  /* On the dark band the muted tones need to invert. */
+  :global(.on-deep) .heading__eyebrow {
+    color: #8fb6bd;
+  }
+
+  :global(.on-deep) .heading__lede {
+    color: var(--color-on-deep-muted);
+  }
+</style>

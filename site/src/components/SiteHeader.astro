@@ -1,0 +1,306 @@
+---
+import Container from './Container.astro';
+
+/**
+ * Site header and primary navigation.
+ *
+ * Zero JavaScript. The mobile menu is a native <details>/<summary>, which is
+ * keyboard operable, screen-reader announced and works before (or without) any
+ * script — unlike a scripted toggle, which is the usual source of trapped
+ * focus and unlabelled state in mobile navigation.
+ *
+ * Navigation items are passed in rather than defined here: the information
+ * architecture is not this component's decision.
+ */
+export interface NavItem {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  brand?: string;
+  /** Small text under the brand, e.g. an independence statement. */
+  brandNote?: string;
+  items?: NavItem[];
+  /** Path of the current page, used to mark the active item. */
+  current?: string;
+}
+
+const { brand = 'Brand', brandNote, items = [], current } = Astro.props;
+const isCurrent = (href: string) => current === href;
+---
+
+<header class="header">
+  <Container class="header__inner">
+    <a class="brand" href="/">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" />
+        </svg>
+      </span>
+      <span class="brand__text">
+        <span class="brand__name">{brand}</span>
+        {brandNote && <span class="brand__note">{brandNote}</span>}
+      </span>
+    </a>
+
+    {
+      items.length > 0 && (
+        <>
+          {/* Desktop navigation */}
+          <nav class="nav-desktop" aria-label="Primary">
+            <ul class="nav-desktop__list">
+              {items.map((item) => (
+                <li>
+                  <a
+                    class="nav-link"
+                    href={item.href}
+                    aria-current={isCurrent(item.href) ? 'page' : undefined}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* Mobile navigation — native disclosure, no script */}
+          <nav class="nav-mobile" aria-label="Primary">
+            <details class="nav-mobile__details">
+              <summary class="nav-mobile__toggle">
+                <span class="visually-hidden">Menu</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 7h16M4 12h16M4 17h16" />
+                </svg>
+              </summary>
+              <ul class="nav-mobile__list">
+                {items.map((item) => (
+                  <li>
+                    <a
+                      class="nav-mobile__link"
+                      href={item.href}
+                      aria-current={isCurrent(item.href) ? 'page' : undefined}
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </nav>
+        </>
+      )
+    }
+
+    <div class="header__actions">
+      <slot name="actions" />
+    </div>
+  </Container>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--color-paper) 90%, transparent);
+    backdrop-filter: saturate(1.6) blur(10px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  /* Fallback where color-mix is unsupported. */
+  @supports not (background: color-mix(in srgb, red 50%, transparent)) {
+    .header {
+      background: var(--color-paper);
+    }
+  }
+
+  .header :global(.header__inner) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    min-height: 4rem;
+  }
+
+  /* Brand ------------------------------------------------------- */
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: none;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+
+  .brand__mark {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 8px;
+    background: var(--color-deep);
+    flex: none;
+  }
+
+  .brand__mark svg {
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+
+  .brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+
+  .brand__name {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .brand__note {
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  /* Desktop nav ------------------------------------------------- */
+  .nav-desktop {
+    flex: 1;
+  }
+
+  .nav-desktop__list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    height: 2.125rem;
+    padding-inline: var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--color-ink-secondary);
+    text-decoration: none;
+    transition:
+      background-color var(--duration) var(--ease),
+      color var(--duration) var(--ease);
+  }
+
+  .nav-link:hover {
+    background: rgba(19, 23, 28, 0.05);
+    color: var(--color-ink);
+  }
+
+  .nav-link[aria-current='page'] {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    font-weight: 500;
+  }
+
+  /* Mobile nav -------------------------------------------------- */
+  .nav-mobile {
+    display: none;
+    margin-left: auto;
+  }
+
+  .nav-mobile__toggle {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--color-ink-secondary);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  /* Remove the default disclosure triangle across engines. */
+  .nav-mobile__toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .nav-mobile__toggle:hover {
+    background: rgba(19, 23, 28, 0.06);
+    color: var(--color-ink);
+  }
+
+  .nav-mobile__toggle svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .nav-mobile__list {
+    position: absolute;
+    left: 0;
+    right: 0;
+    padding: var(--space-2) var(--space-4) var(--space-4);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow-2);
+  }
+
+  .nav-mobile__link {
+    display: block;
+    padding: var(--space-3) var(--space-1);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-ink);
+    font-size: var(--text-md);
+    text-decoration: none;
+  }
+
+  .nav-mobile__list li:last-child .nav-mobile__link {
+    border-bottom: 0;
+  }
+
+  .nav-mobile__link[aria-current='page'] {
+    color: var(--color-accent);
+    font-weight: 500;
+  }
+
+  .header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: none;
+    margin-left: auto;
+  }
+
+  /* Switch point ------------------------------------------------ */
+  @media (max-width: 60rem) {
+    .nav-desktop {
+      display: none;
+    }
+
+    .nav-mobile {
+      display: block;
+      order: 3;
+      margin-left: 0;
+    }
+
+    .header__actions {
+      margin-left: auto;
+      order: 2;
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .brand__note {
+      display: none;
+    }
+  }
+</style>

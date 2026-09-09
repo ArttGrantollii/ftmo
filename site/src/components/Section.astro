@@ -1,0 +1,59 @@
+---
+import Container from './Container.astro';
+
+/**
+ * A page section: vertical rhythm, optional background tone, and the
+ * container in one place so pages don't repeat the pairing.
+ */
+interface Props {
+  /** `alt` alternates the background; `deep` is the dark band. */
+  tone?: 'default' | 'alt' | 'deep';
+  size?: 'default' | 'narrow';
+  /** Anchor target. */
+  id?: string;
+  /** id of the heading that names this section, for assistive technology. */
+  labelledby?: string;
+  class?: string;
+}
+
+const { tone = 'default', size = 'default', id, labelledby, class: className } = Astro.props;
+---
+
+<section
+  class:list={['section', `section--${tone}`, tone === 'deep' && 'on-deep', className]}
+  id={id}
+  aria-labelledby={labelledby}
+>
+  <Container size={size}>
+    <slot />
+  </Container>
+</section>
+
+<style>
+  .section {
+    padding-block: var(--space-8);
+  }
+
+  .section--alt {
+    background: var(--color-surface-alt);
+    border-block: 1px solid var(--color-border);
+  }
+
+  .section--deep {
+    background: var(--color-deep);
+    color: var(--color-on-deep);
+  }
+
+  /* Headings invert on the dark band. */
+  .section--deep :global(h1),
+  .section--deep :global(h2),
+  .section--deep :global(h3) {
+    color: #fff;
+  }
+
+  @media (max-width: 48rem) {
+    .section {
+      padding-block: var(--space-7);
+    }
+  }
+</style>

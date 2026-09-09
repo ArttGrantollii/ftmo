@@ -1,0 +1,41 @@
+---
+/**
+ * Centred content column with responsive gutters.
+ * The only place page width is decided.
+ */
+interface Props {
+  /** `narrow` suits long-form reading; `wide` is for dense layouts. */
+  size?: 'default' | 'narrow';
+  /** Element to render. Use a landmark tag where one is meaningful. */
+  as?: 'div' | 'section' | 'header' | 'footer' | 'nav' | 'main' | 'article';
+  class?: string;
+}
+
+const { size = 'default', as: Tag = 'div', class: className }: Props = Astro.props;
+---
+
+<Tag class:list={['container', `container--${size}`, className]}>
+  <slot />
+</Tag>
+
+<style>
+  .container {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: var(--container-gutter);
+  }
+
+  .container--default {
+    max-width: var(--container-width);
+  }
+
+  .container--narrow {
+    max-width: var(--container-narrow);
+  }
+
+  @media (max-width: 40rem) {
+    .container {
+      padding-inline: var(--space-4);
+    }
+  }
+</style>

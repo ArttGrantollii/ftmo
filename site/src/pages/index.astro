@@ -1,101 +1,266 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import Section from '../components/Section.astro';
+import SectionHeading from '../components/SectionHeading.astro';
+import Button from '../components/Button.astro';
+import Card from '../components/Card.astro';
+import Badge from '../components/Badge.astro';
 
-// Placeholder navigation. Real routes are defined in a later phase.
-const navPlaceholder = ['How It Works', 'Accounts', 'Rules', 'Calculator', 'FAQ'];
+/**
+ * Phase 1C component showcase.
+ *
+ * This is a development harness for the design system, not the production
+ * homepage. It contains no FTMO information and no production content — the
+ * V2 prototype is migrated in Phase 2.
+ *
+ * Navigation and footer entries below are placeholder labels used only to
+ * exercise the components at realistic lengths.
+ */
+const navPlaceholder = [
+  { label: 'Section one', href: '#tokens' },
+  { label: 'Section two', href: '#buttons' },
+  { label: 'Section three', href: '#cards' },
+  { label: 'Section four', href: '#badges' },
+  { label: 'Section five', href: '#type' },
+];
 
-const buildTime = new Date().toISOString();
+const footerPlaceholder = [
+  {
+    heading: 'Group one',
+    links: [
+      { label: 'Placeholder link', href: '#' },
+      { label: 'Placeholder link', href: '#' },
+      { label: 'Placeholder link', href: '#' },
+    ],
+  },
+  {
+    heading: 'Group two',
+    links: [
+      { label: 'Placeholder link', href: '#' },
+      { label: 'Placeholder link', href: '#' },
+    ],
+  },
+];
+
+const swatches = [
+  { name: 'paper', token: '--color-paper' },
+  { name: 'surface', token: '--color-surface' },
+  { name: 'surface-alt', token: '--color-surface-alt' },
+  { name: 'sunk', token: '--color-sunk' },
+  { name: 'ink', token: '--color-ink' },
+  { name: 'ink-secondary', token: '--color-ink-secondary' },
+  { name: 'ink-muted', token: '--color-ink-muted' },
+  { name: 'ink-faint', token: '--color-ink-faint' },
+  { name: 'accent', token: '--color-accent' },
+  { name: 'accent-soft', token: '--color-accent-soft' },
+  { name: 'positive', token: '--color-positive' },
+  { name: 'warning', token: '--color-warning' },
+  { name: 'negative', token: '--color-negative' },
+  { name: 'deep', token: '--color-deep' },
+];
 ---
 
 <BaseLayout
-  title="Production scaffold — Phase 1A"
-  description="Phase 1A scaffold. Not the production site."
+  title="Design system — Phase 1C"
+  description="Component showcase for the production design foundation. Not the production site."
+  noindex
 >
-  <main class="wrap">
-    <p class="eyebrow">Phase 1A — production scaffold</p>
-    <h1>Site name placeholder</h1>
-    <p class="lede">
-      This page exists only to prove the production architecture builds and runs. It is not the
-      website. The approved V2 design, content, calculators and affiliate functionality are migrated
-      in later phases.
+  <SiteHeader
+    slot="header"
+    brand="Design system"
+    brandNote="Scaffold"
+    items={navPlaceholder}
+    current="#tokens"
+  >
+    <Button slot="actions" size="sm">Action</Button>
+  </SiteHeader>
+
+  <!-- Intro -->
+  <Section tone="deep" labelledby="intro-title">
+    <SectionHeading
+      id="intro-title"
+      as="h1"
+      eyebrow="Phase 1C"
+      title="Design system foundation"
+      lede="A development harness for the reusable visual layer: tokens, typography, layout primitives and core components. This is not the production site and contains no FTMO information."
+    />
+    <div class="cluster">
+      <Button variant="primary">Primary action</Button>
+      <Button variant="secondary">Secondary</Button>
+      <Button variant="ghost">Ghost</Button>
+    </div>
+  </Section>
+
+  <!-- Tokens -->
+  <Section id="tokens" labelledby="tokens-title">
+    <SectionHeading
+      id="tokens-title"
+      eyebrow="Tokens"
+      title="Colour"
+      lede="Every text pair is measured at 4.5:1 or better against the surfaces it is used on. Interactive control borders meet 3:1."
+    />
+    <ul class="swatches grid-auto" style="--grid-min: 9rem;">
+      {
+        swatches.map((swatch) => (
+          <li class="swatch">
+            <span class="swatch__chip" style={`background: var(${swatch.token})`} />
+            <span class="swatch__name">{swatch.name}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <!-- Typography -->
+  <Section id="type" tone="alt" labelledby="type-title">
+    <SectionHeading
+      id="type-title"
+      eyebrow="Tokens"
+      title="Typography"
+      lede="A serif display face paired with a system sans, using faces already on the device — no external font request."
+    />
+    <div class="stack" style="--stack-gap: var(--space-4);">
+      {/* Specimens use classes, not heading elements: appearance must not
+          invent structure in the document outline. */}
+      <p class="type-display">Display heading, fluid to viewport</p>
+      <p class="type-h2">Section heading</p>
+      <p class="type-h3">Subsection heading</p>
+      <p class="prose" style="max-width: 62ch;">
+        Body copy sits at fifteen pixels with a 1.55 line height. Measure is capped so lines stay
+        readable on wide screens, and long words break rather than forcing the page to scroll
+        sideways on narrow ones.
+      </p>
+      <p class="meta">Metadata and captions use the muted tier.</p>
+      <p class="faint">The faint tier is the quietest text on the page and still meets AA.</p>
+    </div>
+  </Section>
+
+  <!-- Buttons -->
+  <Section id="buttons" labelledby="buttons-title">
+    <SectionHeading
+      id="buttons-title"
+      eyebrow="Components"
+      title="Buttons"
+      lede="An anchor is rendered when a destination is given, a button otherwise — the element always matches the behaviour."
+    />
+    <div class="stack" style="--stack-gap: var(--space-5);">
+      <div class="cluster">
+        <Button variant="primary">Primary</Button>
+        <Button variant="secondary">Secondary</Button>
+        <Button variant="ghost">Ghost</Button>
+        <Button variant="subtle">Subtle link</Button>
+      </div>
+      <div class="cluster">
+        <Button size="sm">Small</Button>
+        <Button size="md">Medium</Button>
+        <Button size="lg">Large</Button>
+      </div>
+      <div class="cluster">
+        <Button disabled>Disabled button</Button>
+        <Button href="#buttons" variant="secondary">Link styled as button</Button>
+      </div>
+    </div>
+  </Section>
+
+  <!-- Cards -->
+  <Section id="cards" tone="alt" labelledby="cards-title">
+    <SectionHeading
+      id="cards-title"
+      eyebrow="Components"
+      title="Cards"
+      lede="Border, fill and elevation are spent by role rather than stamped on every block, so emphasis still means something."
+    />
+    <ul class="grid-auto" style="--grid-min: 15rem;">
+      <Card as="li">
+        <h3>Standard</h3>
+        <p class="meta">The default container for most content.</p>
+      </Card>
+      <Card as="li" variant="highlight">
+        <h3>Highlighted</h3>
+        <p class="meta">Accent border, no colour fill. For the one thing that matters most.</p>
+      </Card>
+      <Card as="li" variant="info">
+        <h3>Informational</h3>
+        <p class="meta">Quieter, for supporting or explanatory content.</p>
+      </Card>
+      <Card as="li" interactive>
+        <h3>Interactive</h3>
+        <p class="meta">Lifts on hover and on keyboard focus within.</p>
+      </Card>
+    </ul>
+  </Section>
+
+  <!-- Badges -->
+  <Section id="badges" labelledby="badges-title">
+    <SectionHeading
+      id="badges-title"
+      eyebrow="Components"
+      title="Badges"
+      lede="Each variant carries a distinct glyph as well as a colour, so meaning survives greyscale and colour-blindness."
+    />
+    <div class="cluster">
+      <Badge variant="neutral">Neutral</Badge>
+      <Badge variant="success">Success</Badge>
+      <Badge variant="warning">Warning</Badge>
+      <Badge variant="error">Error</Badge>
+      <Badge variant="info">Information</Badge>
+    </div>
+    <p class="meta" style="margin-top: var(--space-4);">
+      Badges are presentational. They must never be used to imply verification or trust that has
+      not actually been established.
     </p>
+  </Section>
 
-    <section aria-labelledby="status">
-      <h2 id="status">Scaffold status</h2>
-      <ul class="status">
-        <li><strong>Framework:</strong> Astro, static output</li>
-        <li><strong>Language:</strong> TypeScript (strict)</li>
-        <li><strong>Backend:</strong> none — no server runtime, no API routes, no database</li>
-        <li><strong>Analytics / affiliate / CMS / search:</strong> none</li>
-        <li><strong>Built:</strong> <time datetime={buildTime}>{buildTime}</time></li>
-      </ul>
-    </section>
-
-    <nav aria-label="Navigation placeholder">
-      <h2>Navigation placeholder</h2>
-      <ul class="nav">
-        {navPlaceholder.map((item) => <li>{item}</li>)}
-      </ul>
-      <p class="note">Not links yet — these routes do not exist.</p>
-    </nav>
-  </main>
-
-  <footer class="wrap">
-    <p class="note">
-      Footer placeholder. Independent site — not affiliated with any prop firm. No FTMO data is
-      published on this page.
-    </p>
-  </footer>
+  <SiteFooter
+    slot="footer"
+    brand="Design system"
+    summary="Component showcase for the production design foundation."
+    groups={footerPlaceholder}
+    legal="Placeholder structural text. Legal wording, disclosures and company information are content decisions handled in a later phase and are deliberately absent here."
+  >
+    <Badge slot="status" variant="neutral">Scaffold — not the production site</Badge>
+  </SiteFooter>
 </BaseLayout>
 
 <style>
-  .wrap {
-    max-width: 60ch;
-    margin: 0 auto;
+  .swatches {
+    list-style: none;
   }
 
-  .eyebrow {
-    margin: 0 0 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #68707a;
+  .swatch {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-sm);
   }
 
-  h1 {
-    margin: 0 0 0.75rem;
-    font-size: 1.75rem;
-    letter-spacing: -0.02em;
+  .swatch__chip {
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
   }
 
-  h2 {
-    margin: 2rem 0 0.5rem;
-    font-size: 1rem;
+  .swatch__name {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--color-ink-muted);
   }
 
-  .lede {
-    margin: 0;
-    color: #39414b;
+  .meta {
+    font-size: var(--text-sm);
+    color: var(--color-ink-muted);
   }
 
-  ul {
-    padding-left: 1.1rem;
+  .faint {
+    font-size: var(--text-sm);
+    color: var(--color-ink-faint);
   }
 
-  .status li,
-  .nav li {
-    margin-bottom: 0.25rem;
-  }
-
-  .note {
-    font-size: 0.8125rem;
-    color: #68707a;
-  }
-
-  footer {
-    margin-top: 2.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e2e4df;
+  h3 + .meta {
+    margin-top: var(--space-2);
   }
 </style>
