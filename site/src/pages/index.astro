@@ -14,47 +14,44 @@ import FeatureStub from '../components/FeatureStub.astro';
 import ResearchFields from '../components/ResearchFields.astro';
 import type { ResearchField } from '../components/ResearchFields.astro';
 import AccountExplorer from '../components/AccountExplorer.astro';
+import type { ProductGroup } from '../components/AccountExplorer.astro';
 
 import { auditFirm, type DisplayFact } from '../lib/content/facts';
 import { resolvePolicy } from '../lib/content/policy';
 
 /**
- * Homepage — Phase 2A.
+ * Homepage — Phase 2B.
  *
- * The static structure of the approved V2 prototype, rebuilt on the Phase 1B
- * content architecture and the Phase 1C design system. It is not a copy of the
- * prototype: the prototype's markup, CSS and script are a reference, not the
- * implementation.
+ * The V2 information architecture from Phase 2A, now carrying researched and
+ * sourced information about FTMO instead of placeholders.
  *
- * Two boundaries are load-bearing here.
+ * The rule that shapes this file: **no figure is written here.** Every number,
+ * percentage, limit, threshold and money amount on the rendered page comes from
+ * `content/firms/ftmo.yaml`, is validated by the Fact schema, and arrives with
+ * the FTMO page it was read on and the date it was read. The prose below is
+ * explanation — how a mechanism works and what it costs a trader to ignore —
+ * and states no figure of its own. Sections that need figures declare which
+ * facts they want and let `ResearchFields` render them together with their
+ * caveats and sources.
  *
- * 1. **No unverified figure appears on this page.** Every slot that will hold
- *    a factual value about FTMO — price, account size, target, drawdown,
- *    split, fee, duration — is declared as a research *field* and filled from
- *    the validated Fact architecture. `ftmo.yaml` currently records no facts,
- *    so every one of those slots renders the "not verified yet" marker. The
- *    figures in the prototype are placeholders and were deliberately not
- *    carried across.
+ * That separation is not stylistic. FTMO's terms change, several objectives
+ * differ between the 1-Step and 2-Step products, and two figures that look
+ * identical (the Maximum Loss percentage) are governed by different mechanisms.
+ * A number typed into this file would drift away from its source silently; a
+ * Fact cannot.
  *
- * 2. **No behaviour.** The calculator, the fit check and the account chooser
- *    hold their positions in the information architecture as static stubs. No
- *    client-side script is shipped by this page, and the mobile menu and the
- *    expandable panels are native HTML elements rather than scripted widgets.
- *
- * Deliberately out of scope, each its own later phase: the affiliate
- * destination and its disclosure wording, the `?source=meta` landing variant
- * (see the note on the final call to action), analytics, structured data and
- * the sticky mobile call-to-action bar.
+ * Still deliberately out of scope: the calculator, the fit check, account
+ * selection, the affiliate destination and its disclosure wording, the
+ * `?source=meta` variant, analytics and structured data. FTMO Futures is
+ * excluded from this page as a scope decision — see docs/CONTENT.md.
  */
 
 // ---------------------------------------------------------------------------
 // Facts
 //
-// `auditFirm` is the reporting form of the sanctioned fact reader: it returns
-// what may be published under the active policy instead of throwing on what
-// may not. That keeps the page renderable while the firm record is empty, and
-// keeps this page from ever becoming a second source of truth — a value that
-// is not in `content/firms/ftmo.yaml` cannot appear on the page at all.
+// `auditFirm` reports what the active policy permits rather than throwing on
+// what it does not, so an expired or unpublishable value degrades to the
+// "not verified yet" marker instead of breaking the page.
 // ---------------------------------------------------------------------------
 const policy = resolvePolicy(import.meta.env);
 const ftmo = await getEntry('firms', 'ftmo');
@@ -68,43 +65,68 @@ const publishedFacts: ReadonlyMap<string, DisplayFact> = new Map(
   audit.publishable.map((fact) => [fact.key, fact]),
 );
 
+/** Most recent verification date across everything actually on the page. */
+const lastChecked = audit.publishable
+  .map((fact) => fact.lastVerified)
+  .filter((date): date is Date => date instanceof Date)
+  .sort((a, b) => b.getTime() - a.getTime())[0];
+
+const lastCheckedLabel = lastChecked
+  ? new Intl.DateTimeFormat('en-GB', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(lastChecked)
+  : null;
+
 // ---------------------------------------------------------------------------
-// Structure
+// Field lists
 //
-// Field lists describe which questions the site answers about a firm. They are
-// structure, not content: a label here asserts nothing about FTMO. The `key`
-// of each is the key the corresponding Fact will carry once it is verified.
+// Which questions each block answers. The `key` of each names the Fact that
+// fills it; a field with no matching published Fact renders the marker.
 // ---------------------------------------------------------------------------
 const glanceFields: ResearchField[] = [
-  {
-    key: 'challenge-structure',
-    label: 'Challenge structure',
-    description: 'How many stages stand between buying an assessment and trading a funded account.',
-  },
-  {
-    key: 'profit-target',
-    label: 'Profit target',
-    description: 'The gain each stage asks for, as a proportion of the account size.',
-  },
-  {
-    key: 'max-drawdown',
-    label: 'Maximum drawdown',
-    description: 'The total loss that ends the account, measured from the starting balance.',
-  },
-  {
-    key: 'profit-split',
-    label: 'Profit split',
-    description: 'The share of profits the trader keeps once the account is funded.',
-  },
+  { key: 'evaluation-models', label: 'Evaluation models' },
+  { key: 'account-size-range', label: 'Account sizes' },
+  { key: 'trading-period', label: 'Trading period' },
+  { key: 'account-types', label: 'Account types' },
 ];
 
-const accountFields: ResearchField[] = [
-  { key: 'account-fee', label: 'Assessment fee' },
-  { key: 'profit-target', label: 'Profit target' },
-  { key: 'max-drawdown', label: 'Maximum drawdown' },
-  { key: 'daily-loss-limit', label: 'Daily loss limit' },
-  { key: 'profit-split', label: 'Profit split' },
-  { key: 'payout-schedule', label: 'Payout schedule' },
+const commonAccountFields: ResearchField[] = [
+  { key: 'account-size-range', label: 'Account sizes' },
+  { key: 'trading-period', label: 'Trading period' },
+  { key: 'platforms', label: 'Platforms' },
+  { key: 'instruments', label: 'Instruments' },
+];
+
+const productGroups: ProductGroup[] = [
+  {
+    title: 'FTMO Challenge: 1-Step',
+    summary: 'One evaluation phase, then an FTMO Account.',
+    fields: [
+      { key: 'one-step-profit-target', label: 'Profit target' },
+      { key: 'one-step-max-daily-loss', label: 'Maximum Daily Loss' },
+      { key: 'one-step-max-loss', label: 'Maximum Loss' },
+      { key: 'one-step-best-day-rule', label: 'Best Day Rule' },
+      { key: 'one-step-min-trading-days', label: 'Minimum trading days' },
+      { key: 'one-step-reward-split', label: 'Reward share' },
+      { key: 'one-step-fee-refund', label: 'Fee refund' },
+    ],
+  },
+  {
+    title: 'FTMO Challenge: 2-Step',
+    summary: 'A Challenge phase, then a Verification phase, then an FTMO Account.',
+    fields: [
+      { key: 'two-step-challenge-profit-target', label: 'Profit target — Challenge' },
+      { key: 'two-step-verification-profit-target', label: 'Profit target — Verification' },
+      { key: 'two-step-max-daily-loss', label: 'Maximum Daily Loss' },
+      { key: 'two-step-max-loss', label: 'Maximum Loss' },
+      { key: 'two-step-min-trading-days', label: 'Minimum trading days' },
+      { key: 'two-step-reward-split', label: 'Reward share' },
+      { key: 'two-step-fee-refund', label: 'Fee refund' },
+    ],
+  },
 ];
 
 const navItems = [
@@ -140,87 +162,138 @@ const footerGroups = [
 // ---------------------------------------------------------------------------
 // Editorial copy
 //
-// Explanatory prose about how evaluation programmes work in general. None of
-// it states a figure, a price, a rule value or a term specific to FTMO — those
-// are Facts and live in the firm record, not here.
+// Explanation only. Nothing below states a figure — see the file comment.
 // ---------------------------------------------------------------------------
 const stages = [
   {
-    title: 'Choose an account',
-    summary: 'Pick an account size and start the assessment.',
+    title: 'Choose a model and a size',
+    summary: 'Decide between the 1-Step and 2-Step Challenge, then pick an account size.',
     body: [
-      'You are buying an assessment, not capital. The fee covers access to a simulated account with a defined profit target and a defined set of risk limits. A larger account costs more and scales every limit with it — the percentages stay the same, the money at stake does not.',
-      'Check whether the fee is refundable, and under what conditions, before treating it as recoverable.',
+      'The two models are not the same product at a different price. They differ in how many phases you complete, how much you may lose in a day, whether the overall loss limit moves as the account grows, what share of the reward you start on, and whether the fee can come back to you. Those differences are set out side by side in the next section.',
+      'You are buying an assessment, not capital. FTMO describes what you trade as simulated capital throughout, and the objectives are defined as percentages of that starting figure — so a larger account scales every limit with it while the percentages stay where they are.',
     ],
   },
   {
-    title: 'Pass the assessment',
-    summary: 'Reach the objectives while staying inside the trading rules.',
+    title: 'Meet the Trading Objectives',
+    summary: 'Reach the profit target without breaching a loss limit.',
     body: [
-      'The assessment asks for a percentage gain while you stay inside a daily loss limit and an overall drawdown limit. Every objective applies at once: reaching the target while breaching a limit is still a failed assessment.',
-      'Accounts end on a risk breach far more often than on a failure to reach the target, so the limits deserve more planning than the target does.',
+      'Every objective applies at the same time: reaching the target while breaching a limit is a failed evaluation, not a pass. Both loss limits are measured on equity — balance plus open profit and loss, adjusted for swaps and commissions — so an open losing position counts against you before you close it.',
+      'The daily limit is recalculated each day at midnight Central European time, which is unlikely to be your own midnight. The overall limit behaves differently between the two models, and that difference is the single most consequential thing on this page to get right.',
     ],
   },
   {
-    title: 'Trade funded and request payouts',
-    summary: 'Trade under the funded structure and become eligible for payouts.',
+    title: 'Trade an FTMO Account',
+    summary: 'The profit target falls away; the risk limits do not.',
     body: [
-      'A funded account generally carries the same risk framework as the assessment — the rules do not relax once you pass. This is where the profit split applies: you keep an agreed share of the profits you generate.',
-      'Payouts follow a schedule and usually a minimum threshold, and any consistency requirement is assessed at that point. An advertised cycle is the request window; processing time is additional.',
+      'Once funded there is no further profit target, but the loss limits continue to apply, and two restrictions that were dormant during the evaluation switch on for Standard accounts — one around selected news releases, one around holding positions through the weekend or a long market break. Swing accounts are exempt from both.',
+      'This is where the reward share applies, where the fee refund is decided on the 2-Step product, and where the Scaling Plan can raise both the account size and the share you keep. Each of those has conditions attached rather than being automatic.',
     ],
   },
 ];
 
+/**
+ * Rule panels. Prose explains the mechanism; `fields` name the Facts that carry
+ * the figures, so a limit and its caveat are always rendered from the record.
+ */
 const rules = [
   {
-    name: 'Maximum drawdown',
-    flag: 'Account-ending',
-    meaning:
-      'A floor under the account. If the balance or equity falls to that level the account is closed, regardless of how much profit was made earlier.',
-    why: 'It sets how many consecutive losses a strategy can absorb: divide the allowance by the risk taken per trade and you have that number exactly. Profits do not automatically buy more room — under a static model the floor never moves, and under a trailing model it rises behind you.',
+    name: 'Maximum Loss',
+    flag: 'Ends the account',
+    body: [
+      'A floor under the account. If equity reaches it the account is closed, regardless of how much profit was made earlier.',
+      'The two products use the same percentage through different mechanisms, and the difference decides how much room a winning run actually buys you. On 1-Step the floor is an end-of-day trailing limit that follows the account upward and never moves back down. On 2-Step it is static: fixed against the initial capital, staying there whatever the account does.',
+    ],
+    fields: [
+      { key: 'one-step-max-loss', label: '1-Step' },
+      { key: 'two-step-max-loss', label: '2-Step' },
+    ],
   },
   {
-    name: 'Daily loss limit',
-    flag: 'Account-ending',
-    meaning:
-      'A cap on how much can be lost within one trading day, usually measured against the balance or equity at the start of that day.',
-    why: 'It is the rule most often breached after an early loss turns into revenge trading. The reset time is set by the firm and may not match your local trading day — check it before planning around it.',
+    name: 'Maximum Daily Loss',
+    flag: 'Ends the account',
+    body: [
+      'A cap on how far equity may fall within one trading day, recalculated at midnight Central European time rather than at your own.',
+      'It is the tighter of the two allowances on both products, and the one most often reached after an early loss turns into an attempt to win it back. Because it is measured on equity, an open position that is deep enough in loss can breach it without ever being closed.',
+    ],
+    fields: [
+      { key: 'one-step-max-daily-loss', label: '1-Step' },
+      { key: 'two-step-max-daily-loss', label: '2-Step' },
+    ],
   },
   {
-    name: 'Profit target and objectives',
-    flag: 'Stage requirement',
-    meaning:
-      'The gain required to complete a stage, plus any requirement to trade on a minimum number of separate days.',
-    why: 'The target and the drawdown allowance together define what the assessment is really asking for — the ratio between them matters more than either number alone. A lower target paired with a tighter limit can be considerably harder, not easier.',
+    name: 'Profit targets and trading days',
+    flag: 'Phase requirement',
+    body: [
+      'What each phase asks for before it can be completed. The 2-Step model splits the requirement across a Challenge phase and a lower Verification phase, and additionally requires trading on a minimum number of separate days — FTMO counts a trading day as any day on which at least one position is opened.',
+      'Read the target against the loss allowance rather than on its own. The ratio between what you must make and what you may lose is what the evaluation is actually asking of you, and a smaller target paired with a tighter limit is not automatically the easier proposition.',
+    ],
+    fields: [
+      { key: 'one-step-profit-target', label: '1-Step' },
+      { key: 'two-step-challenge-profit-target', label: '2-Step — Challenge' },
+      { key: 'two-step-verification-profit-target', label: '2-Step — Verification' },
+      { key: 'one-step-min-trading-days', label: 'Trading days — 1-Step' },
+      { key: 'two-step-min-trading-days', label: 'Trading days — 2-Step' },
+    ],
   },
   {
-    name: 'News, holding and strategy restrictions',
-    flag: 'Check before trading',
-    meaning:
-      'Restrictions on trading around high-impact news, on holding positions overnight or over a weekend, and on strategies that exploit the simulated environment rather than the market.',
-    why: 'These rules decide whether a strategy is viable here at all, and they are usually enforced at payout review rather than at the moment they are broken. A stop loss does not guarantee an exit price across a gap, and what a platform physically allows is not the rulebook.',
+    name: 'Best Day Rule',
+    flag: '1-Step only',
+    body: [
+      'A consistency requirement on the 1-Step product: no single day may account for more than half of the profit made on your profitable days.',
+      'It behaves unlike the loss limits. FTMO states that exceeding it is not a breach and does not end the account — the requirement is simply unmet, and it is satisfied by continuing to trade until the distribution evens out. Its practical effect is that one outsized day cannot complete the phase on its own.',
+    ],
+    fields: [{ key: 'one-step-best-day-rule', label: 'Requirement' }],
   },
   {
-    name: 'Payouts and account conditions',
+    name: 'News, weekend and rollover restrictions',
+    flag: 'Funded accounts only',
+    body: [
+      'Two restrictions that are easy to overstate, and widely overstated. Neither applies during the evaluation, and neither applies to the Swing account type at any stage. Both apply only once you are trading a funded FTMO Account on a Standard account type.',
+      'The news restriction covers a short window around selected announcements, on the instruments those announcements target, and it counts the execution of a pending order — including a Stop Loss or Take Profit — as opening or closing a trade. The weekend restriction requires positions to be closed before the market closes for the weekend, or where a market break runs long.',
+    ],
+    fields: [
+      { key: 'news-restriction-window', label: 'News window' },
+      { key: 'rollover-holding-limit', label: 'Rollover limit' },
+      { key: 'account-types', label: 'Account types' },
+    ],
+  },
+  {
+    name: 'Rewards, refunds and scaling',
     flag: 'Money',
-    meaning:
-      'The share of profits retained by the trader, how often it can be requested, any cap on how much profit may come from a single day, and how long an account may sit inactive.',
-    why: 'The split is the headline number, but the cycle, the threshold and any consistency requirement determine when money actually arrives. Inactivity rules are the quietest way to lose an account you paid for.',
+    body: [
+      'The share you keep is not the same on both products, and on the 2-Step model it is not the share in the headline — that figure is the rate reached through the Scaling Plan or the Premium Programme, not the one you start on.',
+      'The fee is treated differently too: on the 2-Step product it may come back with your first reward withdrawal, which makes it conditional on reaching a payout rather than on passing. On the 1-Step product FTMO states plainly that it does not come back at all. Budget accordingly.',
+    ],
+    fields: [
+      { key: 'one-step-reward-split', label: 'Reward share — 1-Step' },
+      { key: 'two-step-reward-split', label: 'Reward share — 2-Step' },
+      { key: 'one-step-fee-refund', label: 'Fee refund — 1-Step' },
+      { key: 'two-step-fee-refund', label: 'Fee refund — 2-Step' },
+      { key: 'reward-request-day', label: 'First reward request' },
+      { key: 'reward-minimum', label: 'Minimum reward' },
+      { key: 'scaling-increase', label: 'Scaling increase' },
+      { key: 'scaling-maximum', label: 'Scaling maximum' },
+    ],
   },
 ];
 
+/**
+ * Fit notes. Each is traceable to a verified fact or to FTMO's own published
+ * wording; none of them ranks FTMO or compares it to anything else.
+ */
 const goodFit = [
-  'You already trade to fixed risk limits',
-  'You have a defined, tested process',
-  'You want access to a larger account than you would fund yourself',
-  'You can treat the assessment fee as money you may not get back',
+  'You want objectives that are published and fixed in advance rather than assessed at someone’s discretion',
+  'You can work inside a daily loss limit measured on equity, so open losses count before you close them',
+  'You do not need a deadline — there is no calendar limit on completing the evaluation',
+  'You are comfortable choosing between two products whose loss limits behave differently',
 ];
 
 const thinkCarefully = [
-  'You prefer discretion over fixed constraints',
-  'Losing the assessment fee would be a problem',
-  'You are expecting a reliable income rather than an opportunity',
-  'Your process is still forming and the same rules can be practised on a demo account at no cost',
+  'You would need the fee back if it goes badly — on the 1-Step product it is not refunded, and on 2-Step it depends on reaching a first payout',
+  'You hold positions over the weekend — once funded, that is restricted on Standard accounts and unrestricted on Swing',
+  'You trade the moment major news is released — once funded, Standard accounts face a restricted window around selected announcements',
+  'You are expecting the headline reward share from day one on the 2-Step product — that rate is reached through the Scaling Plan or Premium Programme',
+  'You are expecting a reliable income rather than an opportunity, or your process is still forming',
 ];
 
 const trustPoints = [
@@ -229,70 +302,112 @@ const trustPoints = [
     path: 'M12 3l7 3v5.5c0 4-3 7.5-7 9.5-4-2-7-5.5-7-9.5V6z',
   },
   {
-    text: 'Every figure carries its source and the date it was checked',
+    text: 'Every figure carries the FTMO page it came from and the date it was read',
     path: 'M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4',
   },
   {
-    text: 'No guaranteed results, no performance claims',
+    text: 'No guaranteed results, no performance claims, no rankings',
     path: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v5M12 16.5v.5',
   },
   {
-    text: 'Always verify current terms with the firm itself',
+    text: 'Always confirm current terms with FTMO before spending anything',
     path: 'M14 5h5v5M19 5l-8 8M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4',
   },
 ];
 
+/** FAQ answers explain; figures come from `fields`, never from the prose. */
 const faqs = [
   {
     q: 'What is FTMO?',
-    a: 'FTMO is a proprietary trading firm that offers assessment-based access to funded trading accounts. Traders pay a fee for an assessment, trade to a published set of objectives, and — if they meet them — trade a funded account and keep an agreed share of the profits. This site is an independent guide to that model and is not operated by FTMO.',
+    a: 'FTMO is a proprietary trading firm that offers assessment-based access to funded trading accounts. You pay a fee for an evaluation, trade to a published set of Trading Objectives, and — if you meet them — trade an FTMO Account and keep an agreed share of the simulated profits. FTMO describes the capital as simulated throughout. This site is an independent guide to that model and is not operated by FTMO.',
   },
   {
-    q: 'How does the assessment work?',
-    a: 'You choose an account size, complete one or more stages by reaching a profit target without breaching the risk limits, then trade a funded account under the same rules. The exact stages, targets and limits are set by the firm and change over time, so verify the current structure before purchasing.',
+    q: 'What is the difference between the 1-Step and 2-Step Challenge?',
+    a: 'The number of phases is the visible difference, but not the important one. The 1-Step product runs a single evaluation phase, allows a smaller daily loss, applies a Best Day Rule, trails its overall loss limit upward as the account grows, and starts you on the higher reward share — but its fee is not refunded. The 2-Step product adds a Verification phase and a minimum trading days requirement, keeps its overall loss limit static, starts you on a lower reward share, and can refund the fee at your first payout.',
+    fields: [
+      { key: 'one-step-max-daily-loss', label: 'Daily loss — 1-Step' },
+      { key: 'two-step-max-daily-loss', label: 'Daily loss — 2-Step' },
+    ],
   },
   {
     q: 'How much does it cost?',
-    a: 'The fee scales with the account size. No prices are published on this page: a price is a factual claim, and this site publishes none that has not been checked against the firm’s own material and recorded with its source and date. Check the firm’s own pricing, and confirm whether the fee is refundable and under what conditions.',
+    a: 'This page publishes no price. FTMO’s fee table is produced by a selector in the browser rather than being present in the page it serves, so it could not be read and recorded the way every other figure here was — and at the time of checking, a promotional discount was running on at least one account size, which would have been captured as though it were the standard rate. A price that might be a temporary offer, or might vary by size, currency or region, is not something this site will state as fact. Check FTMO’s own pricing directly, and confirm the refund conditions for the product you are buying.',
   },
   {
-    q: 'What happens if I fail?',
-    a: 'Typically the account is closed and the assessment ends. Whether a retry, a discount or a free repeat is offered depends on the terms in force. Budget the fee as money you may not get back.',
+    q: 'Is there a time limit?',
+    a: 'No calendar deadline applies to completing the evaluation. Two qualifications matter: the unlimited period applies to accounts purchased after 13 July 2023, with older accounts keeping their original time-limited terms, and FTMO contacts traders whose accounts sit inactive, offering a freeze for planned absences. A minimum number of trading days applies to the 2-Step product, which sets a floor on how quickly it can be completed rather than a ceiling.',
+    fields: [
+      { key: 'trading-period', label: 'Trading period' },
+      { key: 'two-step-min-trading-days', label: 'Minimum trading days — 2-Step' },
+    ],
   },
   {
-    q: 'Which rules end the most accounts?',
-    a: 'The daily loss limit and the maximum drawdown. Beyond those, expect requirements around minimum trading days, restricted strategies, trading around high-impact news, and holding positions overnight or over a weekend — all of which vary by programme and change over time. The rules section above explains each in plain language.',
+    q: 'How is the loss limit actually measured?',
+    a: 'On equity, not on closed balance — balance plus open profit and loss, adjusted for swaps and commissions. An open position that is far enough underwater can therefore breach a limit before you have closed anything. The daily limit is recalculated at midnight Central European time, so the reset does not follow your own trading day unless you happen to share that clock.',
+    fields: [
+      { key: 'one-step-max-daily-loss', label: 'Daily — 1-Step' },
+      { key: 'two-step-max-daily-loss', label: 'Daily — 2-Step' },
+      { key: 'one-step-max-loss', label: 'Overall — 1-Step' },
+      { key: 'two-step-max-loss', label: 'Overall — 2-Step' },
+    ],
   },
   {
-    q: 'How do payouts work?',
-    a: 'Payouts generally follow a schedule and a minimum threshold, with the agreed profit split applied, and any consistency requirement is assessed at that point. An advertised cycle is the request window — add processing time on top.',
+    q: 'Can I trade during news releases?',
+    a: 'During the evaluation, yes — the news restriction does not apply there. It applies once you are trading a funded FTMO Account on a Standard account type, and covers a short window around selected announcements on the instruments those announcements target. Within that window nothing may be opened or closed, and the execution of a pending order such as a Stop Loss or Take Profit counts as closing. A position opened before the window may be held through it. Swing accounts have no news restriction at any stage.',
+    fields: [{ key: 'news-restriction-window', label: 'Restricted window' }],
   },
   {
-    q: 'Is this suitable for beginners?',
-    a: 'An assessment tests an existing process under pressure rather than being a place to build one, and the fee is paid whether or not you pass. If a process is still forming, the same rules can be practised on a demo account at no cost. This is general education, not advice about your situation, and nothing about an assessment or a funded account guarantees income.',
+    q: 'Can I hold positions overnight and over the weekend?',
+    a: 'During the evaluation, yes, on either account type. Once you are trading a funded FTMO Account the answer depends on the account type you chose: Standard requires positions to be closed shortly before the weekend market close, or where a rollover runs long, while Swing carries no overnight or weekend restriction at any stage. This is the main practical reason to decide between the two account types up front.',
+    fields: [
+      { key: 'rollover-holding-limit', label: 'Rollover limit' },
+      { key: 'account-types', label: 'Account types' },
+    ],
+  },
+  {
+    q: 'What share of the profit do I keep, and when can I withdraw it?',
+    a: 'The share differs by product, and on the 2-Step product the advertised headline is the rate you can reach rather than the rate you begin on — it rises once Scaling Plan or Premium Programme conditions are met. A reward can be requested from a set number of days after your first trade, subject to a minimum that depends on the withdrawal method. FTMO states that it charges no additional commission on reward withdrawals.',
+    fields: [
+      { key: 'one-step-reward-split', label: 'Reward share — 1-Step' },
+      { key: 'two-step-reward-split', label: 'Reward share — 2-Step' },
+      { key: 'reward-request-day', label: 'First request' },
+      { key: 'reward-minimum', label: 'Minimum' },
+    ],
+  },
+  {
+    q: 'What can I trade, and can I use an EA?',
+    a: 'FTMO states that you can trade the instruments available on your chosen platform, and that discretionary trading, algorithmic trading and Expert Advisors are all permitted, provided the approach complies with its risk-management standards and conforms to real market conditions. It notes technical limits on order volume, and cautions that widely shared third-party EAs can run into capital allocation limits because many traders may be running the same system. Separate forbidden-practices rules apply; check those directly rather than assuming a strategy is acceptable.',
+    fields: [
+      { key: 'platforms', label: 'Platforms' },
+      { key: 'instruments', label: 'Instruments' },
+    ],
   },
   {
     q: 'Does this site belong to FTMO?',
-    a: 'No. It is an independent guide, not affiliated with, endorsed by or operated by FTMO, and not a support channel — contact the firm directly about an account. Its commercial arrangements and the disclosure that describes them are covered under disclosures below.',
+    a: 'No. It is an independent guide, not affiliated with, endorsed by or operated by FTMO, and not a support channel — contact FTMO directly about an account. Its commercial arrangements, and the disclosure describing them, are covered under disclosures below.',
   },
 ];
 
 const guides = [
   {
-    title: 'Reading a rulebook before you buy',
-    summary: 'Which clauses decide whether a strategy is viable, and where they are usually found.',
+    title: 'Trailing versus static loss limits',
+    summary:
+      'Why the same percentage behaves differently on the two products, and what each does to a winning run.',
   },
   {
-    title: 'Sizing a position against a drawdown limit',
-    summary: 'Turning an allowance into a losing streak you can survive, and what that implies for risk per trade.',
+    title: 'Sizing a position against a daily limit',
+    summary:
+      'Turning an equity-measured allowance into a losing streak you can survive, and what that implies for risk per trade.',
   },
   {
-    title: 'Why accounts end on risk rules, not targets',
-    summary: 'The failure modes that account for most breaches, and how to plan around each of them.',
+    title: 'Standard or Swing, decided up front',
+    summary:
+      'How the news and weekend restrictions on funded accounts interact with holding period and strategy.',
   },
   {
-    title: 'What a profit split is worth in practice',
-    summary: 'Thresholds, cycles and consistency requirements, and how they shape when money actually arrives.',
+    title: 'What the reward share is worth in practice',
+    summary:
+      'Starting rates, the Scaling Plan conditions, request timing and thresholds — and when money actually arrives.',
   },
 ];
 ---
@@ -335,7 +450,7 @@ const guides = [
     <ul class="hero__notes">
       <li>Independent guide</li>
       <li>Affiliate arrangements disclosed</li>
-      <li>Figures published only once verified</li>
+      <li>Every figure sourced to FTMO</li>
     </ul>
   </Section>
 
@@ -349,16 +464,23 @@ const guides = [
           <h2 id="glance-title" class="glance__title">FTMO at a glance</h2>
           <p class="glance__note">Structured research fields, not marketing claims.</p>
         </div>
-        <Badge variant="neutral">No verified values yet</Badge>
+        {
+          lastCheckedLabel ? (
+            <Badge variant="success">Checked {lastCheckedLabel}</Badge>
+          ) : (
+            <Badge variant="neutral">No verified values yet</Badge>
+          )
+        }
       </div>
 
       <ResearchFields fields={glanceFields} facts={publishedFacts} />
 
       <div class="glance__foot">
         <p>
-          Each field is filled from the firm record once its value has been checked against FTMO’s
-          own published material and recorded with the source, the publisher and the date it was
-          checked. Nothing is shown here before that.
+          These four hold for both evaluation models. The figures that differ between them — the
+          targets, the loss limits, the reward share and whether the fee comes back — are set out
+          product by product under <a href="#accounts">account options</a>. Every value carries the
+          FTMO page it was read on and the date it was read; nothing appears here before that.
         </p>
       </div>
     </Card>
@@ -372,7 +494,7 @@ const guides = [
       id="how-title"
       eyebrow="How it works"
       title="The model in three stages"
-      lede="You buy an assessment, trade to a set of objectives, and — if you meet them — trade a funded account under the same rules."
+      lede="You buy an evaluation, trade to a published set of Trading Objectives, and — if you meet them — trade an FTMO Account. FTMO runs this as two products whose rules differ in ways worth knowing before you choose."
     />
 
     <ol class="stages">
@@ -406,9 +528,13 @@ const guides = [
       id="accounts-title"
       eyebrow="Accounts"
       title="Account options explained"
-      lede="How the cost, the objectives and the limits scale with the size of the account. FTMO’s own options only — this site does not rank firms against one another."
+      lede="FTMO runs the CFD evaluation as two products. Several objectives differ between them, and two figures that look identical are governed by different mechanisms — so they are set out separately rather than merged. FTMO’s own options only; this site ranks nothing."
     />
-    <AccountExplorer fields={accountFields} facts={publishedFacts} />
+    <AccountExplorer
+      commonFields={commonAccountFields}
+      groups={productGroups}
+      facts={publishedFacts}
+    />
   </Section>
 
   <!-- ===================================================================
@@ -419,26 +545,29 @@ const guides = [
       id="rules-title"
       eyebrow="Rules"
       title="The rules to understand before buying"
-      lede="Most accounts do not end because of a bad market view — they end on a risk rule. Each panel explains what a rule is for and what it costs you to ignore."
+      lede="Most accounts do not end because of a bad market view — they end on a risk rule. Each panel explains the mechanism, then shows the figures that govern it with the FTMO page each came from."
     />
 
     <div class="panels">
       {
         rules.map((rule) => (
           <Disclosure title={rule.name} meta={rule.flag}>
-            <p>{rule.meaning}</p>
-            <p class="panel__why">
-              <strong>Why it matters. </strong>
-              {rule.why}
-            </p>
-            <p class="panel__pending">
-              A worked example, with the firm’s current figures, is added to this panel once those
-              figures have been verified.
-            </p>
+            {rule.body.map((paragraph) => (
+              <p class="panel__body">{paragraph}</p>
+            ))}
+            <div class="panel__fields">
+              <ResearchFields fields={rule.fields} facts={publishedFacts} minColumn="13rem" />
+            </div>
           </Disclosure>
         ))
       }
     </div>
+
+    <p class="panels__note">
+      This is a summary of FTMO’s published objectives, not a substitute for them. FTMO also
+      operates separate forbidden-practices rules that are not reproduced here. Confirm the current
+      terms for the product you are buying before you buy it.
+    </p>
   </Section>
 
   <!-- ===================================================================
@@ -471,7 +600,7 @@ const guides = [
       id="fit-title"
       eyebrow="Fit check"
       title="Is this model right for you?"
-      lede="The structure suits some ways of trading and fights others. What follows is an educational observation, not a recommendation."
+      lede="The structure suits some ways of trading and fights others. Each point below follows from a published FTMO rule rather than an opinion about the firm. It is an educational observation, not a recommendation."
     />
 
     <FeatureStub
@@ -541,27 +670,33 @@ const guides = [
 
     <div class="methodology">
       <Card>
-        <h3>What gets published</h3>
+        <h3>Where the figures come from</h3>
         <p>
-          A figure is published only when it has been read on the firm’s own page and recorded
-          together with that page’s address, its publisher and the date it was checked. A value
-          without a source is not a fact and does not appear.
+          Every figure on this page was read on one of FTMO’s own pages — its Trading Objectives,
+          How it works, Reward and Scaling Plan, and the relevant FAQ entries — and recorded with
+          that page’s address, its publisher and the date it was read. Affiliate sites, forums,
+          videos and comparison tables were not used. A value without a source is not a fact and
+          does not appear.
         </p>
       </Card>
       <Card>
-        <h3>What happens as it ages</h3>
+        <h3>What is deliberately missing</h3>
         <p>
-          Terms change. A recorded value is reported for re-checking once it passes a set age, and
-          stops being publishable once it passes a further one. Expiry is enforced by the build
-          rather than left to memory.
+          Prices are not published here. FTMO’s fee table is assembled in the browser rather than
+          served in the page, and a promotion was running when these figures were checked — so any
+          number captured would have risked presenting an offer as the standard rate. Where two
+          FTMO pages appeared to disagree, the conflict was chased down rather than resolved by
+          picking one.
         </p>
       </Card>
       <Card>
         <h3>What this site is not</h3>
         <p>
           It is not affiliated with FTMO, not a support channel, and not a source of financial
-          advice. It ranks nothing and guarantees nothing. Before spending anything, verify the
-          current terms with the firm directly.
+          advice. It ranks nothing, compares nothing and guarantees nothing. Terms change: a
+          recorded value is flagged for re-checking once it passes a set age and stops being
+          publishable past a further one. Confirm the current terms with FTMO before spending
+          anything.
         </p>
       </Card>
     </div>
@@ -594,9 +729,25 @@ const guides = [
        FAQ
        =================================================================== -->
   <Section id="faq" labelledby="faq-title">
-    <SectionHeading id="faq-title" eyebrow="FAQ" title="Common questions" />
+    <SectionHeading
+      id="faq-title"
+      eyebrow="FAQ"
+      title="Common questions"
+      lede="Answers explain the mechanism; the figures beneath them are rendered from the same sourced record as the rest of the page."
+    />
     <div class="panels">
-      {faqs.map((faq) => <Disclosure title={faq.q}>{faq.a}</Disclosure>)}
+      {
+        faqs.map((faq) => (
+          <Disclosure title={faq.q}>
+            <p class="panel__body">{faq.a}</p>
+            {faq.fields && (
+              <div class="panel__fields">
+                <ResearchFields fields={faq.fields} facts={publishedFacts} minColumn="13rem" />
+              </div>
+            )}
+          </Disclosure>
+        ))
+      }
     </div>
   </Section>
 
@@ -608,7 +759,7 @@ const guides = [
       id="guides-title"
       eyebrow="Guides"
       title="Going deeper"
-      lede="Longer pieces on the parts of the model that decide outcomes. These are written and published in a later phase; the titles below are planned, not live."
+      lede="Longer pieces on the parts of the model that decide outcomes — chosen from the differences this research actually turned up. These are written and published in a later phase; the titles below are planned, not live."
     />
 
     <ul class="guides">
@@ -636,9 +787,9 @@ const guides = [
     <div class="explore">
       <h2 id="explore-title">Ready to look at FTMO itself?</h2>
       <p class="explore__body">
-        You have seen how the assessment works, which rules decide most outcomes, and what to
-        weigh up first. The next step is FTMO’s own material — read the current terms there before
-        spending anything.
+        You have seen how each model works, which rules decide most outcomes, and where the two
+        products differ. The next step is FTMO’s own material: prices are not published here, and
+        terms change, so read the current ones there before spending anything.
       </p>
       <p class="explore__pending">
         The outbound link is added once an approved destination and its disclosure wording exist.
@@ -826,14 +977,23 @@ const guides = [
 
   /* Expandable panels (rules, FAQ) ----------------------------------- */
   /* Spacing between adjacent panels is owned by Disclosure itself. */
-  .panel__why {
+  .panel__body + .panel__body {
     margin-top: var(--space-3);
   }
 
-  .panel__pending {
-    margin-top: var(--space-3);
+  /* The sourced figures, set apart from the explanation above them. */
+  .panel__fields {
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .panels__note {
+    margin-top: var(--space-5);
+    max-width: 78ch;
     font-size: var(--text-sm);
-    color: var(--color-ink-faint);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink-muted);
   }
 
   /* Calculator stub -------------------------------------------------- */

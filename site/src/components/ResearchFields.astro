@@ -73,7 +73,16 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
             </p>
           )}
 
-          {field.description && <p class="field__note">{field.description}</p>}
+          {/*
+            A fact's own note is the caveat that makes the number honest — that
+            a limit trails rather than sits still, or that a restriction applies
+            to one account type at one stage. It is rendered in preference to
+            the field's generic description so the qualification always travels
+            with the value it qualifies, never separated from it.
+          */}
+          {(fact?.notes ?? field.description) && (
+            <p class="field__note">{fact?.notes ?? field.description}</p>
+          )}
 
           {fact?.source && (
             <p class="field__source">

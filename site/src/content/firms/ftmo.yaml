@@ -1,17 +1,427 @@
 # FTMO — firm record.
 #
-# Identity only. No factual claims about FTMO are recorded here: pricing,
-# account sizes, targets, drawdown, payouts, fees and rules are added in the
-# verified-content phase, each with a source URL, publisher and verification
-# date recorded against it.
+# Every value below was read on FTMO's own published pages on the date given in
+# `lastVerified`, and carries the exact page it came from. Nothing here is
+# remembered, inferred from an example, or carried over from the prototypes at
+# the repository root — those contain placeholder figures and are not a source.
 #
-# Nothing may be added here with status `verified` unless it was actually
-# checked against FTMO's own published material on the date given.
-# See docs/CONTENT.md.
+# Facts deliberately NOT recorded here, and why, are documented in
+# `site/docs/CONTENT.md` (see "Phase 2B research notes"). The most important
+# omission is pricing: FTMO's fee table is not present in the served page
+# markup and is currently subject to a promotion, so no fee is published.
+#
+# `reviewer` is intentionally absent on every fact. These values were collected
+# and cross-checked against FTMO's own pages but have not yet been signed off by
+# a human against the source, which docs/CONTENT.md requires before merge.
+#
+# Where 1-Step and 2-Step differ, they are recorded as separate facts. Several
+# figures that look identical between the two products are governed by
+# different mechanisms (see `one-step-max-loss` vs `two-step-max-loss`), so they
+# must never be collapsed into a single value.
 
 slug: ftmo
 name: FTMO
 status: active
 
-# No facts recorded yet.
-facts: []
+facts:
+  # -------------------------------------------------------------------------
+  # Product structure — common to both evaluation models
+  # -------------------------------------------------------------------------
+  - key: evaluation-models
+    label: Evaluation models
+    value: 1-Step and 2-Step
+    status: verified
+    source:
+      url: https://ftmo.com/en/how-it-works/
+      title: How it works
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      FTMO offers the CFD evaluation in two variants, FTMO Challenge: 1-Step and
+      FTMO Challenge: 2-Step. The 2-Step model runs an FTMO Challenge phase
+      followed by a Verification phase; the 1-Step model is a single phase. Both
+      lead to an FTMO Account. FTMO Futures is a separate product and is not
+      covered by these facts.
+
+  - key: account-size-range
+    label: Account sizes
+    value: $10,000 – $200,000
+    status: verified
+    source:
+      url: https://ftmo.com/en/how-it-works/
+      title: How it works
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      Stated on the source page as "$10K–$200K" of simulated capital, for both
+      the 1-Step and 2-Step models. The discrete list of selectable sizes
+      between those endpoints is rendered by a client-side selector and is not
+      present in the served markup, so only the range is published here.
+
+  - key: trading-period
+    label: Trading period
+    value: Unlimited
+    status: verified
+    source:
+      url: https://ftmo.com/en/trade-without-any-time-limit-and-take-as-long-as-you-want-to-pass/
+      title: Trade without any time limit and take as long as you want to pass!
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      There is no calendar deadline on the Evaluation Process; the source states
+      "The 30 or 60 calendar days to complete the Evaluation Process are gone."
+      Two limitations apply: the unlimited period covers accounts purchased
+      after 13 July 2023, older accounts keeping their original time-limited
+      terms; and FTMO contacts traders whose accounts sit inactive, with a
+      freeze available for planned inactivity.
+
+  - key: account-types
+    label: Account types
+    value: Standard and Swing
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/do-i-have-to-close-my-positions-overnight/
+      title: Do I have to close my positions overnight or before the weekend?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      The choice of account type changes which restrictions apply on a funded
+      FTMO Account: Swing is exempt from both the news-release restriction and
+      the overnight/weekend closing requirement that apply to Standard.
+
+  - key: platforms
+    label: Platforms
+    value: MT4, MT5, cTrader, TradingView
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/which-instruments-can-i-trade-and-what-strategies-am-i-allowed-to-use/
+      title: Which instruments can I trade and what strategies am I allowed to use?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+
+  - key: instruments
+    label: Instruments
+    value: Forex, indices, commodities, stocks, crypto
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/which-instruments-can-i-trade-and-what-strategies-am-i-allowed-to-use/
+      title: Which instruments can I trade and what strategies am I allowed to use?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      Quoted as "all the instruments and assets that are available in your
+      trading platform (Forex, Indices, Commodities, Stocks, Crypto,…)". The
+      exact instrument list therefore depends on the platform chosen.
+
+  # -------------------------------------------------------------------------
+  # FTMO Challenge: 1-Step
+  # -------------------------------------------------------------------------
+  - key: one-step-profit-target
+    label: Profit target
+    value: 10
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: 10% of the Initial Simulated Capital, required in the single Challenge phase.
+
+  - key: one-step-max-daily-loss
+    label: Maximum Daily Loss
+    value: 3
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      3% of the Initial Simulated Capital, measured on equity (balance plus open
+      profit and loss, adjusted for swaps and commissions) rather than on
+      balance alone, and recalculated daily at 00:00 CE(S)T.
+
+  - key: one-step-max-loss
+    label: Maximum Loss
+    value: 10
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      10% of the Initial Simulated Capital. Two different measurements are
+      involved and conflating them is the usual mistake. A breach is measured on
+      EQUITY (balance plus open profit and loss, adjusted for swaps and
+      commissions). The limit LEVEL is not: on the 1-Step product it is an
+      end-of-day TRAILING limit, recalculated daily at 00:00 CE(S)T as the
+      difference between the Maximum Loss Amount and the highest account BALANCE
+      reached at 00:00 CE(S)T on any preceding trading day — or the Initial
+      Simulated Capital, if that is higher. An intraday equity high therefore
+      does not raise the floor; only a higher end-of-day balance does. The limit
+      can only increase, never decrease. It fully resets when a Reward is
+      withdrawn and a new FTMO Account is provided. This differs mechanically
+      from the 2-Step limit, which is static at the same percentage.
+
+  - key: one-step-best-day-rule
+    label: Best Day Rule
+    value: Best day ≤ 50% of Positive Days' Profit
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      Applies to the 1-Step product. FTMO states that exceeding the Best Day
+      limit is not treated as a rule breach; the requirement must instead be
+      satisfied by continuing to trade before the phase can be completed.
+
+  - key: one-step-min-trading-days
+    label: Minimum trading days
+    value: No minimum
+    status: verified
+    source:
+      url: https://ftmo.com/en/1-step-challenge/
+      title: 'FTMO Challenge: 1-Step'
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      There is no minimum trading days objective on the 1-Step product: the
+      global 1-Step objectives list contains no minimum trading days entry,
+      whereas the 2-Step product lists one explicitly. FTMO's regional FAQ
+      additionally explains the two-to-three day practical floor that the Best
+      Day Rule produces — a consequence of that rule, not a separate
+      requirement. That corroborating page is recorded in docs/CONTENT.md.
+
+  - key: one-step-reward-split
+    label: Reward share
+    value: 90
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/how-do-i-withdraw-my-profits/
+      title: How do I withdraw my profits?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      1-Step traders receive 90% of the simulated profit from the start. Unlike
+      the 2-Step product, the reward cannot be kept on the account as a
+      rollover.
+
+  - key: one-step-fee-refund
+    label: Fee refund
+    value: Not refunded
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/is-the-entry-fee-refunded/
+      title: Is the entry fee refunded?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      FTMO states plainly that the 1-Step entry fee is not refunded. This is a
+      material difference from the 2-Step product.
+
+  # -------------------------------------------------------------------------
+  # FTMO Challenge: 2-Step
+  # -------------------------------------------------------------------------
+  - key: two-step-challenge-profit-target
+    label: Profit target — Challenge
+    value: 10
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: 10% of the Initial Simulated Capital, required in the first phase.
+
+  - key: two-step-verification-profit-target
+    label: Profit target — Verification
+    value: 5
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      5% of the Initial Simulated Capital, required in the second phase. The
+      risk limits are unchanged between the two phases.
+
+  - key: two-step-max-daily-loss
+    label: Maximum Daily Loss
+    value: 5
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      5% of the Initial Simulated Capital, measured on equity and recalculated
+      daily at 00:00 CE(S)T.
+
+  - key: two-step-max-loss
+    label: Maximum Loss
+    value: 10
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      10% of the Initial Simulated Capital, measured on equity. On the 2-Step
+      product this is a STATIC limit: it is fixed against the initial capital
+      and does not move as the account grows. The 1-Step product uses the same
+      percentage as an end-of-day trailing limit instead.
+
+  - key: two-step-min-trading-days
+    label: Minimum trading days
+    value: 4
+    unit: trading days
+    status: verified
+    source:
+      url: https://ftmo.com/en/trading-objectives/
+      title: Trading Objectives
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      At least 4 trading days are required, in the Challenge and Verification
+      phases only. FTMO defines a trading day as any day between 00:00 and
+      23:59 CE(S)T on which at least one position is opened.
+
+  - key: two-step-reward-split
+    label: Reward share
+    value: 80
+    unit: '%'
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/how-do-i-withdraw-my-profits/
+      title: How do I withdraw my profits?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      2-Step traders receive 80% of the simulated profit, increasing to 90% once
+      Scaling Plan or Premium Programme conditions are met. FTMO's marketing
+      headline of "up to 90%" refers to that increased rate, not the starting
+      one.
+
+  - key: two-step-fee-refund
+    label: Fee refund
+    value: With first Reward withdrawal
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/is-the-entry-fee-refunded/
+      title: Is the entry fee refunded?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      FTMO states the 2-Step entry fee "may be refunded with the first Reward
+      withdrawal", refunded to the original payment method. It is therefore
+      conditional on reaching a first payout, not on passing alone.
+
+  # -------------------------------------------------------------------------
+  # FTMO Account — rewards, scaling and restrictions after passing
+  # -------------------------------------------------------------------------
+  - key: reward-request-day
+    label: First reward request
+    value: 14
+    unit: days after the first trade
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/how-do-i-withdraw-my-profits/
+      title: How do I withdraw my profits?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      A Reward claim can be requested in Account MetriX on the 14th day or any
+      day after it, counted from the first placed trade. FTMO quotes 1–2
+      business days to review and approve, then typically 1–2 further business
+      days for the payout.
+
+  - key: reward-minimum
+    label: Minimum reward
+    value: $20 by bank wire, $50 by crypto
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/how-do-i-withdraw-my-profits/
+      title: How do I withdraw my profits?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      Minimum closed profit required to withdraw. FTMO states it charges no
+      additional commission on reward withdrawals.
+
+  - key: scaling-increase
+    label: Scaling increase
+    value: 25
+    unit: '% every 4 months'
+    status: verified
+    source:
+      url: https://ftmo.com/en/reward-growth-and-scaling-plan/
+      title: Reward, Growth and Scaling Plan
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      Four conditions must all be met: at least 4 months trading as an FTMO
+      Trader or since the last scale-up; at least 10% net simulated profit above
+      the starting balance within those 4 months; at least 2 processed Rewards
+      in the same period; and a positive account balance at the time of
+      scale-up.
+
+  - key: scaling-maximum
+    label: Scaling maximum
+    value: $2,000,000
+    status: verified
+    source:
+      url: https://ftmo.com/en/reward-growth-and-scaling-plan/
+      title: Reward, Growth and Scaling Plan
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: Maximum simulated capital across all FTMO Accounts held by one trader.
+
+  - key: news-restriction-window
+    label: News restriction window
+    value: 2 minutes before and after
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/can-i-trade-news/
+      title: Can I trade news?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      Narrow in scope, and easy to overstate. It applies only on a funded FTMO
+      Account, only to the Standard account type, only to selected news
+      announcements, and only on the instruments those announcements target. It
+      does NOT apply during the Evaluation Process, and Swing accounts are
+      exempt entirely. Within the window no trade may be opened or closed,
+      including execution of pending orders such as Stop Loss or Take Profit.
+      Positions opened more than 2 minutes before the release may be held.
+
+  - key: rollover-holding-limit
+    label: Rollover holding limit
+    value: 2
+    unit: hours
+    status: verified
+    source:
+      url: https://ftmo.com/en/faq/do-i-have-to-close-my-positions-overnight/
+      title: Do I have to close my positions overnight or before the weekend?
+      publisher: FTMO
+    lastVerified: 2026-09-09
+    notes: >-
+      On a funded FTMO Account with a Standard account type, positions must be
+      closed shortly before the weekend market close, or where a rollover
+      (market break) lasts longer than 2 hours. It does NOT apply during the
+      Evaluation Process, where positions may be held overnight and over the
+      weekend on either account type, and Swing accounts are exempt at every
+      stage.
